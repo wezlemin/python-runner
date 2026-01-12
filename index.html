@@ -2299,7 +2299,7 @@ Please provide feedback using UK spellings throughout. Your feedback should:
 Keep your response concise (under 60 words) and focused on helping the student learn.`;
 
                 // --- NEW, SECURE PROXY CALL FOR CHECK SOLUTION ---
-                const PROXY_URL = '/api/tip'; // Re-use the same secure serverless function
+                const PROXY_URL = '/ai'; // Re-use the same secure serverless function
 
                 try {
                     // 1. Make a single request to your new, secure proxy
@@ -2307,9 +2307,10 @@ Keep your response concise (under 60 words) and focused on helping the student l
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         // Send the prompt and system instructions to the proxy
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "You are a supportive, encouraging GCSE Computer Science teacher providing constructive feedback on student Python code." }] },
+                        body: JSON.stringify({
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          prompt: prompt
                         }),
                     });
 
@@ -2410,7 +2411,7 @@ Your response should:
 If all requirements appear to be met, suggest they click "Check Solution" to verify their work.`;
 
                 // --- NEW, SECURE PROXY CALL FOR TIP ---
-                const PROXY_URL = '/api/tip'; // Points to your secure serverless function
+                const PROXY_URL = '/ai'; // Points to your secure serverless function
 
                 try {
                     // 1. Make a single request to your new, secure proxy
@@ -2418,10 +2419,12 @@ If all requirements appear to be met, suggest they click "Check Solution" to ver
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         // Send the prompt and system instructions to the proxy
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "You are a supportive GCSE Computer Science teacher providing helpful hints without giving away answers." }] },
+                        body: JSON.stringify({
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            prompt: prompt
                         }),
+
                     });
 
                     // 2. Handle the response from your proxy
