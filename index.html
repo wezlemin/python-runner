@@ -2324,10 +2324,9 @@ Keep your response concise (under 60 words) and focused on helping the student l
 
                     // 3. Process the successful result
                     const result = await response.json();
-                    const candidate = result.candidates?.[0];
 
-                    if (candidate && candidate.content?.parts?.[0]?.text) {
-                        const feedbackText = candidate.content.parts[0].text;
+                    if (result.answer) {
+                        const feedbackText = result.answer;
                         const lowerFeedback = feedbackText.toLowerCase();
                         const isFullyComplete = lowerFeedback.includes('yes - fully complete') || (lowerFeedback.includes('fully complete') && !lowerFeedback.includes('not'));
                         const isPartial = lowerFeedback.includes('partially complete') || lowerFeedback.includes('partial');
@@ -2437,10 +2436,9 @@ If all requirements appear to be met, suggest they click "Check Solution" to ver
 
                     // 3. Process the successful result
                     const result = await response.json();
-                    const candidate = result.candidates?.[0];
 
-                    if (candidate && candidate.content?.parts?.[0]?.text) {
-                        const tipText = candidate.content.parts[0].text;
+                    if (result.answer) {
+                        const tipText = result.answer;
                         feedbackDiv.innerHTML = `<div class="feedback-text">💡 ${tipText}</div>`;
                     } else {
                         feedbackDiv.innerHTML = '<span class="feedback-error">Unable to generate tip. Please try again.</span>';
