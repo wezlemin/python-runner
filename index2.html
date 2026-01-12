@@ -641,7 +641,7 @@
         // and return the Google Gemini JSON response.
         
         // NOTE: Your working version used '/api/tip'. If this doesn't work, change this to '/api/tip'.
-        const PROXY_URL = '/api/tip'; 
+        const PROXY_URL = '/ai'; 
 
         // --- QUIZ DATA ---
         const quizData = {
@@ -4121,16 +4121,16 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        tools: [{ "google_search": {} }], // Added to match working version
-                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                                        prompt: systemInstruction
+                    ? `${systemInstruction}\n\n${prompt}`
+                    : prompt
                     })
                 });
 
                 if (!response.ok) throw new Error(`Server returned ${response.status}`);
                 
                 const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                return typeof result.answer === "string" ? result.answer.trim() : null;
             } catch (error) {
                 console.error("AI Request Failed", error);
                 return null;
