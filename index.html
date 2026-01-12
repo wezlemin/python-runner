@@ -1,0 +1,2470 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Runner</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .main-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .task-panel {
+            width: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .task-header {
+            background: #f59e0b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .task-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .task-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .task-content {
+            background: #fffbeb;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+        }
+        .task-question {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1f2937;
+            white-space: pre-wrap;
+        }
+        .feedback-panel {
+            margin-top: 20px;
+        }
+        .feedback-header {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .feedback-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .feedback-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .feedback-content {
+            background: #f0f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            min-height: 100px;
+        }
+        .feedback-text {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #1f2937;
+            white-space: pre-wrap;
+        }
+        .feedback-loading {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+        }
+        .feedback-error {
+            color: #e53e3e;
+        }
+        .header {
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .status {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+        .editor-section {
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 250px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            background: #f7fafc;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+        .controls {
+            padding: 20px;
+            background: #f7fafc;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .run-btn {
+            background: #48bb78;
+            color: white;
+            flex: 1;
+        }
+        .run-btn:hover {
+            background: #38a169;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+        .run-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .check-btn {
+            background: #667eea;
+            color: white;
+            flex: 1;
+        }
+        .check-btn:hover {
+            background: #5a6cdb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .check-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .clear-btn {
+            background: #f56565;
+            color: white;
+        }
+        .clear-btn:hover {
+            background: #e53e3e;
+        }
+        .output-section {
+            padding: 20px;
+            min-height: 200px;
+        }
+        #output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 150px;
+        }
+        .error {
+            color: #fc8181;
+        }
+        .loading {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+        }
+        
+        /* Progress Modal Styles */
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 999999;
+            overflow-y: auto;
+        }
+        .progress-modal.show {
+            display: block;
+        }
+        .progress-modal-content {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .progress-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ccc;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            transition: background 0.2s;
+        }
+        .progress-modal-close:hover {
+            background: #bbb;
+        }
+        .progress-modal-header {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        .progress-code-box {
+            background: #f0f4f8;
+            border: 2px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .progress-code-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .progress-code {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            word-break: break-all;
+            margin-top: 10px;
+            border: 1px solid #cbd5e0;
+        }
+        .code-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .progress-input-section {
+            margin-top: 20px;
+        }
+        .progress-input-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 14px;
+        }
+        .progress-input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .progress-input-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="container">
+        <div class="header">
+            <h1>🐍 Python Code Runner</h1>
+            <div class="status" id="status">Loading Python environment...</div>
+        </div>
+        
+        <div class="editor-section">
+            <div class="section-title">Python Code Editor</div>
+            <textarea id="code" placeholder="Write your Python code here..."># Create code here to complete the challenge shown.
+
+</textarea>
+        </div>
+        
+        <div class="controls">
+            <button class="run-btn" id="runBtn" onclick="runCode()" disabled>Run Code</button>
+            <button class="check-btn" id="checkBtn" onclick="checkCode()" disabled>Check Solution</button>
+            <button class="clear-btn" onclick="showProgressMap()">📊 View Progress</button>
+            <button class="clear-btn" onclick="showProgressCodeModal()">💾 Save/Load Progress</button>
+            <button class="clear-btn" onclick="getTip()">💡 Get Tip</button>
+        </div>
+        
+        <div class="output-section">
+            <div id="output" class="loading">Initializing Python interpreter...</div>
+        </div>
+    </div>
+    
+    <div class="task-panel">
+        <div class="task-header">
+            <div class="task-title">📝 Current Task</div>
+            <div class="task-subtitle">Loading...</div>
+        </div>
+        <div class="task-content">
+            <div class="task-question">Loading task...</div>
+        </div>
+        
+        <div class="feedback-panel">
+            <div class="feedback-header">
+                <div class="feedback-title">💬 Feedback</div>
+            </div>
+            <div class="feedback-content">
+                <div id="feedback" class="feedback-text">Click "Check Solution" to get feedback on your code.</div>
+            </div>
+        </div>
+    </div>
+    
+    </div>
+
+    <div id="progressCodeModal" class="progress-modal" onclick="closeProgressCodeModal(event)">
+        <div class="progress-modal-content">
+            <button class="progress-modal-close" onclick="closeProgressCodeModal()">×</button>
+            <h2 class="progress-modal-header">💾 Save/Load Progress</h2>
+            
+            <div class="progress-code-box">
+                <h3>Your Current Progress Code</h3>
+                <p style="font-size: 13px; color: #4a5568; margin-bottom: 5px;">Save this code to track your progress:</p>
+                <div class="progress-code" id="progressCodeDisplay">Complete a task to generate your progress code</div>
+                <div class="code-actions">
+                    <button class="check-btn" onclick="copyProgressCode()">Copy Code</button>
+                    <button class="check-btn" onclick="downloadProgressCode()">Download Code</button>
+                </div>
+            </div>
+            
+            <div class="progress-input-section">
+                <label for="progressCodeInput">Load Previous Progress:</label>
+                <input type="text" id="progressCodeInput" placeholder="Paste your progress code here">
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="check-btn" onclick="loadProgressCode()">Load Progress</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pyodide;
+        
+        
+        // Task database
+        const pythonChallenges = {
+
+"1. Variables, Constants and Basic Input/Output": [
+
+    {
+        "question": "DEBUG TASK 1:\nFix the program so it:\n1. Assigns a subject name (e.g., 'Computer Science') to a variable.\n2. Prints the subject name.",
+        "starter": "subject = 'Computer Science'\nPrint(subject"
+    },
+    
+    {
+        "question": "DEBUG TASK 2:\nFix the program so it:\n1. Assigns the number 15 to a variable `count`.\n2. Assigns the constant `MAX_COUNT` to 50.\n3. Prints both variables/constants on separate lines.",
+        "starter": "COUNT = 15\nmax_count = 50\nprint('Count is: ' + COUNT)\nprint('Max is: ' + MAX_COUNT)"
+    },
+
+    {
+        "question": "DEBUG TASK 3:\nFix the program so it:\n1. Asks for user's name and age.\n2. Prints: \"Hello <name>, you are <age> years old.\"",
+        "starter": "nmae = inpt(\"Enter your name: \")\nage = input(\"Enter your Age\"\nprint(\"Hello\", name, \"you Are \" + age + \" years old\")"
+    },
+
+    {
+        "question": "DEBUG TASK 4:\nFix the program so it:\n1. Asks for two numbers.\n2. Converts BOTH to integers.\n3. Prints their sum.",
+        "starter": "num_1 = input(\"Enter number one: \"))\nnum2 == int(input(\"Enter number two: \"))\ntottal = nm1 + num2\nprint(\"Sum is \" + total)"
+    },
+
+    {
+        "question": "DEBUG TASK 5:\nFix the code so it:\n1. Stores PI correctly as a constant (float).\n2. Asks for radius (float).\n3. Calculates circumference = 2 * PI * radius.\n4. Prints the result.",
+        "starter": "pi = \"3.14159\"\nradius = float(input(\"Enter radius:)\ncirumference = 2 * PI * raduis\nPrint(\"Circumference is: \" + circ)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Boolean True):\nFix the program so it:\n1. Assigns the Boolean value `True` to a variable `logged_in`.\n2. Prints the variable's value with a label.",
+        "starter": "logged in = true\nprint(\"Logged in status:\", logged_in)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Boolean False):\nFix the program so it:\n1. Assigns the Boolean value `False` to the variable `is_active`.\n2. Prints the variable's value.",
+        "starter": "IS_ACTIVE = 'False'\nprint(is_active)"
+    },
+
+    {
+        "question": "TASK 8:\nWrite a program that:\n1. Asks for first name.\n2. Asks for favourite subject.\n3. Prints \"<name>'s favourite subject is <subject>\".",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 9:\nCreate a constant SCHOOL_NAME.\nThen:\n1. Ask for a student's name.\n2. Print \"<name> studies at <SCHOOL_NAME>\".",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 10:\nWrite a program that:\n1. Asks for two integers (e.g., number of apples and number of oranges).\n2. Stores them in `a` and `b`.\n3. Prints \"You entered a=<a> and b=<b>\".",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 11:\nCreate a program that:\n1. Asks for a product name.\n2. Asks for its price (as a float).\n3. Prints: \"The <product> costs £<price> and VAT applies.\"",
+        "starter": ""
+    },
+    
+    {
+        "question": "TASK 12:\nWrite a program that:\n1. Asks for a rectangle's width (float) and height (float).\n2. Calculates and stores the area (`width * height`).\n3. Prints the area in the format: \"The area is <area>\".",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13:\nWrite a program that:\n1. Creates a constant `DEFAULT_LANGUAGE` and sets it to 'Python'.\n2. Asks the user for their preferred programming language.\n3. Prints both the `DEFAULT_LANGUAGE` and the user's preferred language on separate lines.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Boolean Introduction):\nWrite a program that:\n1. Assigns the Boolean value `True` to a variable named `is_complete`.\n2. Assigns the Boolean value `False` to a variable named `is_running`.\n3. Prints both variables with labels, e.g., \"Completed: <is_complete>\".",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Simple Output Formatting):\nWrite a program that:\n1. Asks the user for the city name and the temperature (integer).\n2. Print the result in one line: \"The temperature in <city> is <temp> degrees Celsius.\"",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Complex Variable Assignment):\nWrite a program that:\n1. Asks for a user's name.\n2. Asks for their current year of birth (integer).\n3. Stores the constant `MIN_AGE` as 18.\n4. Prints the user's name, birth year, and the minimum age on three separate lines.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Complex Variable Assignment):\nWrite a program that:\n1. Asks for a user's name.\n2. Asks for their current year of birth (integer).\n3. Stores the constant `MIN_AGE` as 18.\n4. Prints the user's name, birth year, and the minimum age on three separate lines.",
+        "starter": ""
+    },
+    
+    {
+        "question": "TASK 18 (Casting and Printing Multiple Types):\nWrite a program that:\n1. Asks for a user's target grade (string, e.g., '9').\n2. Asks for their current percentage (integer, e.g., 85).\n3. Print: \"Student aiming for Grade <grade> with <percentage>%.\"",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Constant and Boolean Print Combination):\nWrite a program that:\n1. Creates a constant `PASS_MARK` set to 50 (integer).\n2. Asks the user for their name.\n3. Assign the Boolean value `True` to a variable `passed_unit`.\n4. Print the user's name, the `PASS_MARK`, and the `passed_unit` status in one comprehensive sentence using commas.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Advanced Float Input and Formatting):\nWrite a program that:\n1. Asks for the cost of an item (float, e.g., 14.99).\n2. Asks for the number of items (integer, e.g., 2).\n3. Print the details: \"Item Count: <count>, Unit Cost: £<cost>\"",
+        "starter": ""
+    }
+  ],
+
+ "2. Mathematical Operators": [
+
+    {
+        "question": "DEBUG TASK 1 (Addition & Casting):\nFix the program so it:\n1. Asks for two numbers.\n2. Converts BOTH to integers.\n3. Prints their sum.",
+        "starter": "num1 = input(\"Enter score 1: \")\nnum2 = input(\"Enter score 2: \")\ntotal = num1 + num2\nprint(\"Sum:\", total)"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Subtraction & Variable Name):\nFix the program so it:\n1. Calculates the difference between the `MAX_SCORE` constant and the user's input score.\n2. Prints the remaining points.",
+        "starter": "MAX_SCORE == 100\ncurrentscore = int(input(\"Enter current score: \"))\nremaining = MAX_SCORE * currentscore\nprint(Remaining)"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Multiplication & Precedence):\nFix the code so it calculates 5 times the sum of two numbers input by the user. Use parentheses correctly.",
+        "starter": "a = int(input(\"Enter number A: \"))\nb = int(input(\"Enter number B: \"))\nresult = 5 * a + b\nPRINT(\"Result:\" result)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Standard Division & Float):\nFix the program to calculate the average of two numbers input by the user (must be a float result).",
+        "starter": "score1 = input(\"Score 1: \")\nscore2 = input(\"Score 2: \")\naverage = (score1 + score2) / 2\nprint(int(average))"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Integer Division //):\nFix the program to calculate how many FULL packets of 8 items can be created from the total input by the user. (Must be an integer result).",
+        "starter": "total_items = int(input(\"Enter total items: \"))\npackets = total_items / 8\nprint(\"Full packets:\", packets)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Modulo %):\nFix the program to find the **remainder** when the input number is divided by 5.",
+        "starter": "number = INT(input(\"Enter a number: \"))\nremainder = number // 5\nprint(\"Remainder is:\" remiander)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Precedence/Operator):\nFix the syntax and operator error to correctly calculate: `(10 + input_num) * 2`.",
+        "starter": "num = int(input(\"Enter number: \")\nresult = 10 num * 2\nprint(\"The result is:\", result)"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Variable Overwrite):\nFix the program so it calculates and prints the product of the two input numbers, instead of printing an incorrect value.",
+        "starter": "x = int(input(\"Enter X: \"))\ny = int(input(\"Enter Y: \"))\nx = y + 5\nproduct = x * y\nprint(\"Product:\", product)"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Constant Use):\nFix the program to correctly use the defined constant to calculate the total cost, including the VAT amount.",
+        "starter": "VAT_RATE = 0.20\nprice == input(float(\"Enter price: \"))\nvat_amount = price * vat_rate\ntotal = price * vat_amount\nprint(\"Total:\", total)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Chaining Operations):\nFix the expression to correctly calculate the total score after adding 5 points to both inputs, then multiplying them together: `(A + 5) + (B + 5)`.",
+        "starter": "a = input(int(\"A: \"))\nb = input(int(\"B: \"))\nresult = a + 5 + b + 5\nprint(\"New Score:\", result)"
+    },
+
+    {
+        "question": "TASK 11 (Simple Addition):\nWrite a program that:\n1. Asks for the number of successful tests (integer).\n2. Asks for the number of failed tests (integer).\n3. Prints the total number of tests run.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Subtraction):\nWrite a program that:\n1. Creates a constant `TARGET_YEAR` set to 2050.\n2. Asks the user for the current year (integer).\n3. Calculates and prints the number of years remaining until the target year.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Multiplication & Casting):\nWrite a program that:\n1. Asks for the number of users (integer).\n2. Asks for the amount of data used per user (float, e.g., 5.5).\n3. Calculates and prints the total data used.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Standard Division):\nWrite a program that:\n1. Asks for the total number of students (integer).\n2. Asks for the total budget (float).\n3. Calculates and prints the budget per student (must be a float result).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Integer Division //):\nWrite a program that:\n1. Asks for a total distance in meters (integer).\n2. Calculates and prints the number of full kilometers represented by that distance.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Modulo %):\nWrite a program that:\n1. Asks for the current hour (24-hour clock, integer, 0-23).\n2. Calculates and prints the time remaining until the next full 4-hour block (i.e., the remainder when divided by 4).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Area Calculation - Precedence):\nWrite a program that:\n1. Asks for the radius of a circle (float).\n2. Creates a constant `PI` set to `3.14159`.\n3. Calculates the area of the circle using the formula: `PI * radius * radius`.\n4. Prints the result.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Mixed Arithmetic):\nWrite a program that:\n1. Asks for a starting population (integer).\n2. Asks for the number of births (integer).\n3. Asks for the number of deaths (integer).\n4. Calculates the final population: `starting + births - deaths`.\n5. Prints the final population.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Time Conversion - Advanced // and %):\nWrite a program that:\n1. Asks for a total number of seconds (integer).\n2. Calculates and prints the number of **full minutes** (`// 60`).\n3. Calculates and prints the number of **remaining seconds** (`% 60`) on a separate line.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Constant and Mixed Operations):\nWrite a program that:\n1. Creates a constant `DISCOUNT = 0.10` (10% off).\n2. Asks for the original price (float).\n3. Calculates the discount amount (`price * DISCOUNT`).\n4. Calculates the final price (`price - discount_amount`).\n5. Prints the final discounted price.",
+        "starter": ""
+    }
+],
+
+
+  "3. Logical and Comparison Operators": [
+
+    {
+        "question": "DEBUG TASK 1 (Equals ==):\nFix the program so it:\n1. Asks for two scores (integers).\n2. Checks if the scores are exactly equal.\n3. Prints the Boolean result.",
+        "starter": "score1 = input('Enter first score: ')\nscore2 = input(\"Enter second score: ')\nresult = score1 = score2\nprint(Result)"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Not Equals !=):\nFix the program so it:\n1. Asks for two usernames (strings).\n2. Checks if the usernames are DIFFERENT.\n3. Prints the Boolean result with a label.",
+        "starter": "user_a = input(\"Enter username A: \")\nUSER_B = input(\"Enter username B: \")\nis_different = user_a == user_b\nprint('Is different', IS_DIFFERENT)"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Greater Than >):\nFix the code so it:\n1. Creates a constant `PASS_MARK` of 70.\n2. Asks the user for their score (integer).\n3. Checks if the score is greater than the pass mark.\n4. Prints the result.",
+        "starter": "pass_mark = 70\nscore = input('Enter your score: ')\npassed = score > PASS_MARK\nprint(\"Passed?\", score)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Less Than <):\nFix the program so it:\n1. Asks for a time in minutes (integer).\n2. Checks if the time is less than 30 minutes.\n3. Prints the Boolean comparison result.",
+        "starter": "limit = 30\ntime = input(\"Enter time: \"\nis_quick = time < limit\nprint(is_quick)"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Greater Than or Equal >=):\nFix the program so it:\n1. Asks for a height in metres (float).\n2. Checks if the height is at least 1.5 metres (i.e., >= 1.5).\n3. Prints the result of the comparison.",
+        "starter": "min_height = '1.5'\nheight = int(input(\"Enter height: \"))\nis_tall_enough = height > min_height\nprint('Tall enough: ' + is_tall_enough)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Less Than or Equal <=):\nFix the program so it:\n1. Asks for a current count (integer).\n2. Creates a constant `MAX_COUNT` of 10.\n3. Checks if the current count is less than or equal to the maximum.\n4. Prints the Boolean result.",
+        "starter": "MAX_COUNT = 10\ncount = int(input('Current count: '))\nis_safe = count = MAX_COUNT\nprint(\"Is safe:\", count)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Comparing Arithmetic):\nFix the program to check if `(num_A + 10)` is greater than `num_B`.",
+        "starter": "a = input(\"Enter A: \")\nb = input(\"Enter B: \")\nis_greater = a + 10 > b\nprint(is greater)"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (String Comparison):\nFix the code to check if the user's input password is *exactly* 'secret123'.",
+        "starter": "PASSWORD = \"secret123\"\nuser_input = input(\"Enter password: \")\nmatch = user_input != PASSWORD\nprint('Password matched:', MATCH)"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Modulo Comparison):\nFix the program to check if the input number is an **even** number. (Hint: even numbers have a remainder of 0 when divided by 2).",
+        "starter": "number = int(input(\"Enter a number: \"))\nIS_EVEN = number / 2 == 0\nprint(\"Is the number even:\", IS_EVEN)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Chaining Comparison):\nFix the expression to correctly check if the two input numbers are both less than the constant `LIMIT` of 100.",
+        "starter": "LIMIT = 100\nnum1 = int(input('Number 1: ')\nnum2 = int(input('Number 2: '))\ncheck = num1 < limit && num2 < limit\nprint(\"Both under limit:\", check)"
+    },
+
+    {
+        "question": "TASK 11 (Simple Equals ==):\nWrite a program that:\n1. Creates a constant `REQUIRED_LEVEL` of 5.\n2. Asks the user for their current level (integer).\n3. Prints the Boolean result of checking if the user's level is exactly equal to the required level.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Simple Not Equals !=):\nWrite a program that:\n1. Asks the user for their current project status (e.g., 'Draft', 'Final').\n2. Prints the Boolean result of checking if the status is NOT equal to 'Completed'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Greater Than >):\nWrite a program that:\n1. Asks for the temperature (integer).\n2. Prints the Boolean result of whether the temperature is greater than 25.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Less Than < with Float):\nWrite a program that:\n1. Asks for a time in seconds (float, e.g., 9.81).\n2. Prints the Boolean result of whether the time is less than 10.0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Greater Than or Equal >=):\nWrite a program that:\n1. Asks for the amount of money in a wallet (float).\n2. Prints the Boolean result of whether the amount is greater than or equal to 50.0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Less Than or Equal <=):\nWrite a program that:\n1. Asks for a year (integer).\n2. Prints the Boolean result of whether the year is less than or equal to the constant `CURRENT_YEAR` (set this constant to 2025).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Comparing Arithmetic Result):\nWrite a program that:\n1. Asks for the width and height of a rectangle (integers).\n2. Calculates the area (`width * height`).\n3. Prints the Boolean result of checking if the calculated area is greater than 100.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Comparing Two Inputs):\nWrite a program that:\n1. Asks for two integer inputs: `value_A` and `value_B`.\n2. Prints the Boolean result of checking if `value_A` is less than `value_B`.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Advanced Modulo %):\nWrite a program that:\n1. Asks for a day number (integer, 1-31).\n2. Prints the Boolean result of checking if the day number is a multiple of 7 (i.e., remainder is 0 when divided by 7).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Boolean Output from Comparison):\nWrite a program that:\n1. Asks for a starting score (integer).\n2. Adds 20 to the starting score to get the `final_score`.\n3. Prints the string 'Final score meets target: ' followed by the Boolean result of the comparison: `final_score >= 80`.",
+        "starter": ""
+    }
+  ],
+
+"4. Simple Decisions (IF and IF...ELSE)": [
+
+    {
+        "question": "DEBUG TASK 1 (Basic IF syntax):\nFix the program so it:\n1. Asks for a number (integer).\n2. Checks if the number is greater than 10.\n3. If it is, prints 'The number is large'. (Note the correct colon and indentation).",
+        "starter": "num = int(input(\"Enter a number: \"))\nif num > 10\nprint(\"The number is large\")"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (IF...ELSE):\nFix the program so it:\n1. Asks for a password (string).\n2. Checks if the password is 'admin123'.\n3. Prints 'Access Granted' or 'Access Denied'. (Fix the comparison and syntax).",
+        "starter": "password = input('Enter password: ')\nif password = 'admin123'\nprint(\"Access Granted\")\nelse\nprint(\"Access Denied\")"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Indentation and Case):\nFix the program so that the **variable name** is correctly checked, and the success message is correctly indented.",
+        "starter": "target_score = 50\nscore = int(input('Enter score: '))\nIF score > TARGET_SCORE:\nprint(\"Target reached\")"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Casting and Operators):\nFix the program so it:\n1. Asks for the price (float).\n2. Checks if the price is less than 20.0.\n3. Prints 'Budget item' or 'Expensive item'.",
+        "starter": "price = input('Enter price: ')\nif price < 20:\n    print(\"Budget item\")\nelse:\n    print(\"Expensive item\")"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Constant and IF):\nFix the program to correctly use the constant `MAX_USERS` and print a warning if the current count is too high (i.e., greater than 50).",
+        "starter": "MAX_USERS = 50\nuser_count = int(input('Current user count: '))\nif user_count < MAX_USERS:\n    print(\"Warning: Over capacity\")"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (IF with Arithmetic):\nFix the program to correctly calculate the total score and check if the total is greater than 150. (Fix the calculation and the variable names).",
+        "starter": "score_a = int(input(\"A: \"))\nscore_b = int(input(\"B: \"))\ntotalScore = score_a + score_B\nif total_score > 150:\n    print(High performance)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Modulo Check):\nFix the program to check if the input number is **odd** (i.e., remainder when divided by 2 is 1). If it is odd, print 'Odd number detected'.",
+        "starter": "num = int(input(\"Enter number: \"))\nif num / 2 == 1:\n    print('Odd number detected')"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (String Equality):\nFix the program so it correctly checks if the input colour is exactly 'red' (case sensitive) and prints a specific message if it is.",
+        "starter": "colour = input(\"Enter colour: \")\nif colour = red:\nprint('Red is selected')"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Negation / Not Equals):\nFix the program to check if the user's input `status` is **not** equal to 'Processing'. If it is not 'Processing', print 'Ready for next step'.",
+        "starter": "input = status('Enter status: ')\nif status =! 'Processing'\n    print('Ready for next step')"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Chaining IF...ELSE):\nFix the program to give the appropriate greeting depending on whether the person is an admin or a guest.",
+        "starter": "is_admin = input('Are you admin? (Y/N): ')\nif is_admin == 'Y':\n    print(\"Welcome, Admin\")\nprint(\"Welcome, Guest\")\nelse:"
+    },
+
+    {
+        "question": "TASK 11 (Simple IF):\nWrite a program that:\n1. Asks for a user's age (integer).\n2. If the age is greater than or equal to 18, prints 'Eligible to vote'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Simple IF...ELSE):\nWrite a program that:\n1. Asks for a number (integer).\n2. If the number is zero, prints 'Value is neutral'.\n3. Otherwise, prints 'Value is non-zero'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (IF with Constants):\nWrite a program that:\n1. Creates a constant `MIN_PASS_GRADE` of 'C'.\n2. Asks the user for their grade (string).\n3. If the grade is exactly equal to `MIN_PASS_GRADE`, prints 'Just passed!'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (IF with Arithmetic):\nWrite a program that:\n1. Asks for the total number of items (integer).\n2. Calculates the remainder when divided by 5 (`% 5`).\n3. If the remainder is not zero, prints 'Items remaining'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (IF...ELSE with Arithmetic):\nWrite a program that:\n1. Asks for the cost of an item (float).\n2. If the cost is less than 10.0, prints 'Free shipping applies'.\n3. Otherwise, prints 'Shipping fee required'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (IF...ELSE with Comparison):\nWrite a program that:\n1. Asks for two scores, `score1` and `score2` (integers).\n2. If `score1` is greater than `score2`, prints 'Score 1 is higher'.\n3. Otherwise, prints 'Score 2 is higher or equal'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Casting and IF):\nWrite a program that:\n1. Asks the user for a single letter (string).\n2. If the letter is 'A' (case sensitive), prints 'Excellent start'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Boolean Variable in IF):\nWrite a program that:\n1. Creates a Boolean variable `is_connected` and sets it to `True`.\n2. If `is_connected` is True, prints 'Connection established'.\n3. Otherwise, prints 'Connection error'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Chaining Logic - IF):\nWrite a program that:\n1. Asks for the number of minutes (integer).\n2. Calculates the number of full hours (`// 60`).\n3. If the number of full hours is greater than 1, prints 'Long session detected'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Complex IF...ELSE):\nWrite a program that:\n1. Asks for a student's name (string).\n2. Asks for their exam score (integer).\n3. If the exam score is greater than 60, prints \"Well done, <name>!\".\n4. Otherwise, prints \"<name>, please review the material.\".",
+        "starter": ""
+    }
+  ],
+
+
+ "6. Boolean Logic (AND, OR, NOT)": [
+
+    {
+        "question": "DEBUG TASK 1 (Range Check):\nFix the program so it correctly checks if a number is between 10 and 20 (inclusive) using the correct Python logical operator (`and`).",
+        "starter": "num = input(\"Enter Number: \")\nif num >= 10 and num <= 20\n    Print(\"In Range\")"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (OR Logic):\nFix the program so it prints 'ACCESS GRANTED' if the username is either 'admin' **OR** 'root'.",
+        "starter": "user = input('Enter username: ')\nif user = 'admin' or user == 'root':\nprint('ACCESS GRANTED')\nelse:\nPrint('ACCESS DENIED')"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Missing Cast/Keyword):\nFix the conditional statement. It needs to check if both `s1` is greater than 50 AND `s2` is greater than 50.",
+        "starter": "s1 = input('Score 1: ')\ns2 = int(input('Score 2: '))\nif s1 > 50 AND s2 > 50:\n    print(\"Both High\")"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (NOT Keyword Syntax):\nFix the program to correctly check if the status is **NOT** 'Complete'. If it is not complete, print 'Still working...'. ",
+        "starter": "status = input('Enter status: ')\nif not status = 'Complete'\n    print(\"Still working...\")"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Operator and Casting):\nFix the program to correctly cast the inputs and use the `and` operator to check if both the time is less than 60 **AND** the distance is greater than 100.",
+        "starter": "time = input('Time in mins: ')\ndistance = input('Distance in km: ')\nif time > 60 or distance < 100:\n    print(\"Fast and Far\")"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (OR Case and Concatenation):\nFix the program to check if the input character is 'X' **OR** 'Y' (case sensitive).",
+        "starter": "char = input(\"Enter character: \")\nif char == 'x' or 'y':\n    print(Valid Char)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Boolean Logic and Syntax):\nFix the program to check if the user is **NOT** a member (i.e., `is_member` is `False`).",
+        "starter": "is_member = False\nif ismember = false:\n    print(\"Not a member\")\nElse\n    print(\"Welcome member\")"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Complex AND/OR):\nFix the logic and syntax. The program should print 'Special User' if the user's role is 'Admin' **OR** if their level is over 90.",
+        "starter": "role = input('Enter role: ')\nlevel = input('Enter level: ')\nif role == 'Admin' OR level > 90:\nprint('Special User')"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Modulo and Casting):\nFix the program to print 'Divisible by Both' if the number is divisible by 5 **AND** divisible by 2. (Fix cast, colon, and print string).",
+        "starter": "num = input('Enter number: ')\nif num % 5 == 0 and num % 2 == 0:\n    print(\"Divisible by both\")"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Nested to Combined):\nFix the program by combining the condition into a single IF statement using `and`. It should only print 'High Priority' if the `priority` is 'High' **AND** the `status` is 'Urgent'.",
+        "starter": "priority = input('Priority: ')\nstatus = input('Status: ')\nif priority = 'High' and status == Urgent\nprint('High Priority')"
+    },
+
+    {
+        "question": "TASK 11 (Simple AND):\nWrite a program that:\n1. Asks for a height (float) and weight (float).\n2. Prints 'Suitable for Ride' if height is greater than 1.5 **AND** weight is less than 120.0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Simple OR):\nWrite a program that:\n1. Asks for a day of the week (string).\n2. Prints 'No School Today' if the day is 'Saturday' **OR** 'Sunday'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Range Check AND):\nWrite a program that:\n1. Asks for a temperature (integer).\n2. Prints 'Optimal Temperature' if the temperature is greater than 18 **AND** less than 22.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (NOT and IF...ELSE):\nWrite a program that:\n1. Asks for a user's country (string).\n2. If the country is **NOT** 'USA', prints 'International Shipping Required'.\n3. Otherwise, prints 'Domestic Shipping'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Combining AND and OR):\nWrite a program that:\n1. Asks for a score (integer) and an attendance status (string: 'Present' or 'Absent').\n2. Prints 'Bonus Points' if the score is greater than 80 **OR** if the attendance status is 'Present'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Logical Precedence):\nWrite a program that:\n1. Asks for three integers: A, B, and C.\n2. Prints 'A is largest' if A is greater than B **AND** A is greater than C.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (OR with Multiple Strings):\nWrite a program that:\n1. Asks for a colour (string).\n2. Prints 'Primary Colour' if the colour is 'Red' **OR** 'Blue' **OR** 'Yellow'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Arithmetic and AND):\nWrite a program that:\n1. Asks for the quantity (integer) and price (float).\n2. Calculates the `total_cost`.\n3. Prints 'Premium Order' if the quantity is greater than 5 **AND** the `total_cost` is greater than 100.0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Boolean Variable Check):\nWrite a program that:\n1. Asks for the user's name (string).\n2. Creates two Booleans: `is_verified = True` and `is_suspended = False`.\n3. Prints 'User Active' only if `is_verified` is True **AND** `is_suspended` is False.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Complex ELIF with AND):\nWrite a program that:\n1. Asks for a speed (integer).\n2. If speed is greater than 50 **AND** less than 80, prints 'Normal Flow'.\n3. ELIF speed is greater than or equal to 80, prints 'Speeding'.\n4. Otherwise, prints 'Too Slow'.",
+        "starter": ""
+    }
+  ],
+
+
+  "7. Indefinite Iteration (WHILE Loops)": [
+
+    {
+        "question": "DEBUG TASK 1 (Counter-Controlled Infinite Loop):\nFix the program so it runs exactly 4 times (for i=1, 2, 3, 4) and prints the current value of `i` each time.",
+        "starter": "i = 1\nwhile i < 5\n    Print(i)\n    i = i + 1"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Sentinel Check & Casting):\nFix the program so it keeps asking the user for input until they enter the correct code, '42'.",
+        "starter": "guess = 0\nwhile guess != 42 Print('Try again'):\n    guess = input('Enter the code: ')"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Decrementer & Syntax):\nFix the program so it counts down from 5 to 1, printing each number.",
+        "starter": "count = 5\nwhile count > 0\n    print(count)\n    count - 1"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Casting & Incorrect Increment):\nFix the program so it asks the user for numbers until they enter a number greater than or equal to 10.",
+        "starter": "num = 0\nwhile num < 10\n    num = input('Enter num: ')\n    num++"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Comparison Operator & Indentation):\nFix the program so it prints 'Waiting...' until the user changes the status from 'WAIT' to anything else.",
+        "starter": "status = 'WAIT'\nwhile status = 'WAIT'\nprint('Waiting...')\nstatus = input('New Status: ')"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Boolean Flag & Case):\nFix the program to correctly use the boolean variable `is_running` to loop exactly twice, then stop.",
+        "starter": "counter = 0\nis_running = true\nwhile is_running\n    print(\"Looping...\")\n    counter = counter + 1\n    if counter == 2:\n        is_running = false"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Input & Variable Scope):\nFix the program to print the names entered by the user until the user inputs the word 'stop'.",
+        "starter": "name = input(\"Enter name or 'stop': \")\nwhile name != STOP\n    Print(name)\n    name = input(\"Enter name or 'stop': \")"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Casting & Logic):\nFix the program to check if `counter` is less than `x`, printing the counter value each time, and incrementing `counter`.",
+        "starter": "x = input('Limit: ')\ncounter = 0\nwhile counter < x\n    print(counter)\n    counter + 1"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Multi-line Output & Syntax):\nFix the program so it prints 'Cycle Start' and 'Cycle End' exactly 3 times.",
+        "starter": "Limit = 3\ni = 1\nwhile i <= limit\n    print('Cycle Start')\n    i += 1\nPrint('Cycle End')"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Boolean Comparison & Indentation):\nFix the program to loop **while** `is_ready` is `False`, printing 'Loading...', and then setting `is_ready` to `True` inside the loop to end the iteration.",
+        "starter": "is_ready = false\nwhile is_ready = false\n    print('Loading...')\n    is_ready = True"
+    },
+
+    {
+        "question": "TASK 11 (Simple Counter-Controlled):\nWrite a program that:\n1. Initializes a counter at 1.\n2. Uses a `WHILE` loop to print 'Python is Fun!' exactly 10 times.\n3. Increments the counter correctly.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Sentinel Input Loop):\nWrite a program that:\n1. Initializes a string variable to ''.\n2. Uses a `WHILE` loop to continually ask the user: 'Enter password (type 'exit' to stop)':\n3. The loop stops only when the input is exactly 'exit'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Accumulator Loop):\nWrite a program that:\n1. Initializes `total` to 0 and `count` to 1.\n2. Uses a `WHILE` loop to run 5 times.\n3. In each loop, adds the current `count` value to `total`.\n4. After the loop, prints the final `total` (which should be 15).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Decrementing Loop):\nWrite a program that:\n1. Initializes a variable `seconds` to 60.\n2. Uses a `WHILE` loop to count down, printing the current `seconds` value in each iteration.\n3. The loop should stop when `seconds` reaches 0 (and print 0).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Validation Loop):\nWrite a program that:\n1. Continually asks the user to 'Enter a positive number:'.\n2. Uses a `WHILE` loop that only stops when the number entered is greater than 0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Counting Even Numbers):\nWrite a program that:\n1. Initializes `i` to 2 (the first even number).\n2. Uses a `WHILE` loop to print all the even numbers up to and including 20 (2, 4, 6, ..., 20).\n3. Increments `i` by 2 each time.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Boolean Flag Control):\nWrite a program that:\n1. Initializes `keep_going` to `True`.\n2. Inside a `WHILE` loop, asks the user: 'Continue? (Y/N)':\n3. If the user inputs 'N', set `keep_going` to `False` to end the loop. Print 'Loop Ended' afterward.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Arithmetic Loop Condition):\nWrite a program that:\n1. Initializes `population` to 100.\n2. Uses a `WHILE` loop that continues as long as `population` is less than 500.\n3. Inside the loop, increase `population` by 50 each time.\n4. Print the final `population` after the loop stops.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Simple Menu Loop):\nWrite a program that:\n1. Prints a menu: '1. Start | 2. Quit'.\n2. Uses a `WHILE` loop that continues until the user inputs '2'.\n3. If the user inputs '1', print 'Starting...'.\n4. If the user inputs '2', print 'Exiting...'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Nested IF in WHILE):\nWrite a program that:\n1. Initializes a counter `x` to 1.\n2. Uses a `WHILE` loop that runs as long as `x` is less than or equal to 10.\n3. Inside the loop, use an `IF` statement: if `x` is greater than 7, print 'High Value'.\n4. Increment `x` by 1 at the end of the loop.",
+        "starter": ""
+    }
+  ],
+
+
+  "8. Definite Iteration (FOR Loops)": [
+
+    {
+        "question": "DEBUG TASK 1 (Basic Syntax):\nFix the program so it prints 'Hello' exactly 5 times. (Look for syntax, colon, and case errors).",
+        "starter": "FOR i IN range(5)\n    Print('Hello')"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Range Function & Off-by-One):\nFix the program so it counts from 1 up to and including 10 (1, 2, 3, ..., 10).",
+        "starter": "for num in range(10):\nprint(num)"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Start, Stop, and Step):\nFix the program so it prints only the odd numbers between 5 and 15 (inclusive, i.e., 5, 7, 9, 11, 13, 15).",
+        "starter": "for i in range(0, 30, 5):\n    print(i)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Accumulator Placement):\nFix the program so that the `total` is correctly calculated *inside* the loop, and the final result (10) is printed only *once* outside the loop.",
+        "starter": "total = 0\nfor i in range(1, 5):\n    total + i\nprint(total)"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (String Iteration):\nFix the program so it prints each letter of the word 'PYTHON' on a new line.",
+        "starter": "word = PYTHON\nfor i in word:\nprint(\"i\")"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Counting Backwards):\nFix the program so it counts down from 10 to 1, printing each number.",
+        "starter": "for count in range(10, 0, 1):\n    print(count)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Type Error/Casting):\nFix the program to correctly sum the numbers from 1 to 5, using the correct variable type for the loop counter.",
+        "starter": "sum_val == 0\nfor i in Range(1: 6):\n    sum_val = sum_val + \"i\"\nprint(sumval)"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Arithmetic in Loop):\nFix the program to calculate the value of 5 multiplied by itself 4 times (5 * 5 * 5 * 5). The initial value should be 1.",
+        "starter": "result = 0\nfor i in range(4)\nresult = result * 5\nprint(\"result\")"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Variable Misuse):\nFix the program to correctly use the constant `STEP` (3) to print 0, 3, 6, 9.",
+        "starter": "STEP = 3\nfor i in range(0, 10, step):\n    print(I)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Nested IF in FOR):\nFix the program so that it loops 10 times (1-10) and only prints 'Large' if the loop counter is greater than 7.",
+        "starter": "for x in range(1, 10)\n    if x > 7\n        print('Large')"
+    },
+
+    {
+        "question": "TASK 11 (Simple Definite Loop):\nWrite a program that uses a `FOR` loop to print the phrase 'Iteration Complete' exactly 7 times.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Looping 1 to N):\nWrite a program that:\n1. Asks the user for an integer `N`.\n2. Uses a `FOR` loop to print all numbers from 1 up to and including `N`.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Looping in Steps):\nWrite a program that uses a `FOR` loop to print the 5 times table, starting from 0 and ending at 50 (0, 5, 10, ..., 50).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Decrementing Loop):\nWrite a program that uses a `FOR` loop to print the numbers 10, 8, 6, 4, 2, 0.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Accumulator - Sum of First 10):\nWrite a program that:\n1. Initializes a `total` variable to 0.\n2. Uses a `FOR` loop to add all numbers from 1 to 10 to `total`.\n3. Prints the final `total` (which should be 55).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Counting with a Condition):\nWrite a program that:\n1. Loops from 1 to 20.\n2. Inside the loop, uses an `IF` statement to check if the current number is divisible by 3 (`% 3 == 0`).\n3. If it is divisible by 3, prints the number.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (String Iteration):\nWrite a program that:\n1. Defines a variable `code` set to 'ENCRYPT'.\n2. Uses a `FOR` loop to iterate through the string.\n3. Prints the message 'Current character: <character>' for each letter.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Input and Repetition):\nWrite a program that:\n1. Asks the user for a phrase (string).\n2. Asks the user for a repeat count (integer).\n3. Uses a `FOR` loop to print the phrase the specified number of times.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Simple Power Calculation):\nWrite a program that calculates 2 raised to the power of 8 (2^8).\n1. Initialize `power_val` to 1.\n2. Loop 8 times.\n3. In each loop, multiply `power_val` by 2.\n4. Print the final result (256).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Nested IF and Arithmetic):\nWrite a program that:\n1. Loops from 1 to 15.\n2. If the current number is greater than 10, print the number squared (`number * number`).\n3. Otherwise (if less than or equal to 10), print the number.",
+        "starter": ""
+    }
+  ],
+
+  "9. Procedures (No Return Value)": [
+
+    {
+        "question": "DEBUG TASK 1 (Definition Syntax):\nFix the program so:\n1. The procedure `greet_user` is correctly defined (using `def` and a colon).\n2. The procedure is correctly called after its definition (correct name and parentheses).",
+        "starter": "def greet_user()\n    print('Hello World')\ngreetuser()"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Indentation and Calling):\nFix the program so:\n1. The procedure is correctly defined using `def`.\n2. The code inside the procedure is correctly indented.\n3. The procedure is correctly called.",
+        "starter": "def log_message():\nprint('System Status: OK')\nLog_message()"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Parameter Passing):\nFix the program so:\n1. The procedure keyword is replaced with `def`.\n2. The value of `team_name` is passed correctly to the `display_team` procedure.\n3. The local parameter variable (`name`) is used inside the procedure to print the value.",
+        "starter": "# Passing parameters (values sent into a subroutine)\nteam_name = 'Eagles'\ndef display_team(name):\n    print('Team:', team_name)\ndisplay_team(team_name)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Parameter Mismatch):\nFix the program so:\n1. The procedure definition is corrected (missing colon).\n2. The required parameter (80) is passed when calling the procedure.",
+        "starter": "def set_volume(level):\n    print('Volume set to:', level)\nset_volume()"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Global vs. Local Scope):\nFix the program so:\n1. The procedure keyword is replaced with `def`.\n2. The `global` keyword is correctly used inside the procedure to modify `counter`.\n3. The global variable `counter` (lowercase) is referenced correctly in the print statement.",
+        "starter": "counter = 10\ndef update_counter():\n    global counter\n    counter = counter + 1\nupdate_counter()\nprint('New Counter:', COUNTER)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Local Scope Misuse):\nFix the program so:\n1. The procedure definition is corrected (missing parentheses and colon).\n2. The variable `message` is printed **inside** the `generate_message` procedure, as it is local to it.",
+        "starter": "def generate_message():\n    message = 'Data Loaded'\ngenerate_message()\nprint(message)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Multiple Parameters):\nFix the program so:\n1. The procedure `print_details` is correctly defined (parameters separated by commas, colon included).\n2. The print statement correctly concatenates the string and parameter variables.",
+        "starter": "def print_details(name, city):\n    print('User: ' + name + ' City: ' + city)\nprint_details('Abbie', 'London')"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Procedure Definition Placement):\nFix the program so:\n1. The procedure keyword is replaced with `def`.\n2. The procedure must be fully defined **before** it is called in the main program flow.",
+        "starter": "launch_sequence()\n\ndef launch_sequence():\n    print('Sequence started')"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Variable Case/Indentation):\nFix the program so:\n1. The procedure keyword is replaced with `def`.\n2. The print statement is correctly indented.\n3. The parameter variable `ID` is referenced using the correct case inside the procedure.",
+        "starter": "def display_info(ID):\n    print('Current ID:', id)\ndisplay_info(500)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Procedure in a Loop):\nFix the program so:\n1. The call to `print_star` is correctly indented within the `for` loop.\n2. The `print_star` procedure is called correctly (with parentheses).",
+        "starter": "def print_star():\n    print('*')\nfor i in range(3):\nprint_star"
+    },
+
+    {
+        "question": "TASK 11 (Simple Procedure):\nWrite a program that:\n1. Defines a procedure called `display_header` that prints a simple header message (e.g., '--- REPORT START ---').\n2. Calls the procedure to execute the print statement.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Procedure with One Parameter):\nWrite a program that:\n1. Defines a procedure `welcome(name)` that takes a string parameter `name`.\n2. Prints 'Welcome, <name> to the system.' using the parameter.\n3. Calls the procedure with a test name.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Procedure with Two Integer Parameters):\nWrite a program that:\n1. Defines a procedure `calculate_sum(a, b)` that takes two integer parameters.\n2. Calculates the sum of the two inputs.\n3. Prints the calculated sum.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Procedure and Local Loop):\nWrite a program that:\n1. Defines a procedure `repeat_message(count)` that takes an integer `count`.\n2. Uses a **FOR** loop to print 'Processing...' `count` times.\n3. Calls the procedure with a test value (e.g., 3).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Procedure and IF...ELSE):\nWrite a program that:\n1. Defines a procedure `check_age(age)` that takes an integer `age`.\n2. Uses an **IF...ELSE** structure to check if `age` is 18 or over.\n3. Prints 'Access Granted' if true, or 'Access Denied' otherwise.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Global Scope Demonstration):\nWrite a program that:\n1. Defines a global variable `score = 0`.\n2. Defines a procedure `add_points()` that modifies the global `score` by adding 5 to it (using the **global** keyword).\n3. Calls `add_points()` twice.\n4. Prints the final global `score` (which should be 10).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Procedure Calling Another Procedure):\nWrite a program that:\n1. Defines a procedure `start_engine()` that prints 'Engine started'.\n2. Defines a procedure `start_car()` that calls `start_engine()` and then prints 'Car is running'.\n3. Calls `start_car()` to initiate the sequence.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Procedure with Multiple String Parameters):\nWrite a program that:\n1. Defines a procedure `log_data(time, user, action)` that accepts three string parameters.\n2. Prints them neatly formatted on a single line (e.g., 'Time: 09:30, User: Root, Action: Login').",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Procedure with Math Operators):\nWrite a program that:\n1. Defines a procedure `calculate_area(width, height)` that takes two floats.\n2. Calculates the area (`width * height`).\n3. Prints the result, rounded to **2 decimal places**.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Procedure with Boolean Parameter):\nWrite a program that:\n1. Defines a procedure `set_mode(is_high_power)` that takes a **Boolean** parameter.\n2. If the parameter is `True`, it prints 'High Power Mode Activated'.\n3. Otherwise, it prints 'Standard Mode'.",
+        "starter": ""
+    }
+  ],
+
+"10. Functions (Return Values)": [
+
+    {
+        "question": "DEBUG TASK 1 (Missing Return):\nFix the program. The function `calculate_sum` must use the `return` keyword to send the result back so the main program can print it.",
+        "starter": "def calculate_sum(a, b):\n    result = a + b\n\nfinal_result = calculate_sum(5, 10)\nprint('Sum:', final_result)"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Not Storing Return Value):\nFix the program so:\n1. The returned value from `get_discount` is stored in the `price_after_discount` variable.\n2. The main program prints the stored variable.",
+        "starter": "def get_discount(price):\n    return price * 0.90\n\nget_discount(200)\nprint('Final Price:', get_discount(200))"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Returning Wrong Variable):\nFix the program so:\n1. The function `check_status` correctly returns the Boolean variable `is_active`.\n2. It returns the Boolean value instead of the string 'Status Check Complete'.",
+        "starter": "def check_status(level):\n    is_active = level > 100\n    return 'Status Check Complete'\n\nstatus = check_status(120)\nprint('Status:', status)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Casting Return Value):\nFix the program so:\n1. The integer returned from `get_year` is correctly cast to a string.\n2. The string is then concatenated in the `print` statement.",
+        "starter": "def get_year():\n    return 2025\n\nprint('Current Year: ' + get_year())"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Local Scope Misuse):\nFix the program. The variable `total_cost` is local to the function and cannot be accessed outside. It must be returned by the function.",
+        "starter": "def calculate_cost(quantity):\n    total_cost = quantity * 5\n    return total_cost\n\ntotal = calculate_cost(4)\nprint('Cost:', total_cost)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Function Call Syntax):\nFix the program. The function `get_max_limit` is called without parentheses when used in the print statement, causing an error.",
+        "starter": "def get_max_limit():\n    return 999\n\nprint('Maximum:', get_max_limit)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Conditional Return Flow):\nFix the program. Ensure that `calculate_tax` always returns a value, even if the `if` condition is not met (i.e., add a default return value).",
+        "starter": "def calculate_tax(income):\n    if income > 50000:\n        return income * 0.20\n\nprint('Tax:', calculate_tax(40000))"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Mismatched Parameters):\nFix the program. `add_text` requires two parameters (`a` and `b`), but only one is provided in the function call.",
+        "starter": "def add_text(a, b):\n    return a + ' ' + b\n\nmessage = add_text('System')\nprint(message)"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Return inside Loop):\nFix the program so:\n1. The function only returns the final accumulated sum (15).\n2. The `return` statement executes only after the `for` loop is complete.",
+        "starter": "def sum_up_to_n(n):\n    total = 0\n    for i in range(1, n + 1):\n        total = total + i\n        return total\n\nprint(sum_up_to_n(5))"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Function in Expression):\nFix the program to correctly multiply the result of `get_multiplier()` by 2.",
+        "starter": "def get_multiplier():\n    return 5\n\nfinal_value = get_multiplier * 2\nprint('Final Value:', final_value())"
+    },
+
+    {
+        "question": "TASK 11 (Simple Return Value):\nWrite a program that:\n1. Defines a function `get_default_temperature()` that returns the integer value 20.\n2. Calls the function and prints the returned result.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Return with One Parameter):\nWrite a program that:\n1. Defines a function `cube_number(n)` that takes an integer `n`.\n2. The function returns `n * n * n`.\n3. Calls the function with the input 3 and prints the stored result.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Return with Two Parameters):\nWrite a program that:\n1. Defines a function `get_average(a, b)` that takes two floats.\n2. The function returns their average (`(a + b) / 2`).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Conditional Boolean Return):\nWrite a program that:\n1. Defines a function `is_admin(role)` that takes a string `role`.\n2. The function returns the Boolean value `True` if the string `role` is exactly 'Admin'.\n3. The function returns `False` otherwise.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Chaining Function Calls):\nWrite a program that defines two functions:\n1. `add_one(x)`: Returns `x + 1`.\n2. `process_value(y)`: Calls `add_one(y)` and returns the result of that call.\n3. Call `process_value(9)` and print the final output (10).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Return Calculated String):\nWrite a program that:\n1. Defines a function `format_time(hours, minutes)` that takes two integers.\n2. The function returns a single formatted string, e.g., 'Time: 02 hours, 30 minutes'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (ELIF Return):\nWrite a program that defines a function `get_grade(score)` which:\n1. Returns 'A' if score >= 90.\n2. Returns 'B' if score >= 80.\n3. Returns 'F' otherwise.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Input and Return):\nWrite a program that:\n1. Defines a function `get_user_input()`.\n2. Inside the function, ask the user for their age.\n3. Convert the age to an integer and return the age.\n4. Store and print the returned age.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Constant Use in Function):\nWrite a program that:\n1. Defines a constant `VAT = 0.20`.\n2. Defines a function `calc_total(price)` that returns `price + (price * VAT)`.\n3. Calls the function with 100.0 and prints the result (120.0).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Return from a Loop):\nWrite a program that:\n1. Defines a function `product_of_numbers(limit)` that takes an integer.\n2. Uses a `for` loop to calculate the product of all numbers from 1 up to the `limit` (e.g., if limit is 4, returns 1*2*3*4 = 24).\n3. Returns the final product.",
+        "starter": ""
+    }
+  ],
+
+"11. String Manipulation": [
+
+    {
+        "question": "DEBUG TASK 1 (Length Function):\nFix the program so:\n1. It correctly uses the `len()` function.\n2. It prints the length of the string `data` (which is 11).",
+        "starter": "data = 'SystemReady'\nprint(len data)"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Uppercase Method):\nFix the program so:\n1. The method to convert to uppercase is correctly called with parentheses.\n2. The word 'test' is correctly converted to uppercase and printed.",
+        "starter": "word = 'test'\nnew_word = word.upper\nprint(new_word)"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (String Concatenation):\nFix the program to correctly join the `name` and `status` strings with a colon and a space (e.g., 'Abbie: Online').",
+        "starter": "name = 'Abbie'\nstatus = 'Online'\nmessage = name + status\nprint(message)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Extracting First Character):\nFix the program to correctly access and print the **first** character of the string `code` ('E'). (Remember, indexing starts at 0).",
+        "starter": "code = 'ENCRYPT'\nprint(code[1])"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Slicing/Sub-string):\nFix the program so it correctly extracts the middle part of the string 'PASSWORD' to print 'SWO'. (Use the correct start and end indices for slicing).",
+        "starter": "word = 'PASSWORD'\nprint(word[3:6])"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Casting Error):\nFix the program so:\n1. The integer `version` is correctly cast to a string.\n2. The string is used in the concatenation to avoid an error.",
+        "starter": "version = 2\nprint('Version: ' + version)"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (Finding Substring Position):\nFix the program to find the index (position) of the letter 'm' in the string 'Programming'.",
+        "starter": "text = 'Programming'\nposition = text.get_index('m')\nprint(position)"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (String Immutability):\nFix the program. Strings cannot be modified like this. Re-assign the entire string to the new value ('Error Code 400') to update it.",
+        "starter": "message = 'Error Code 500'\nmessage[10] = '4'\nprint(message)"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Looping through Characters):\nFix the program so it correctly uses a `for` loop to print each **character** in the `key` string on a separate line.",
+        "starter": "key = 'AUTH'\nfor i in key:\n    print(key)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Slicing Off-by-One):\nFix the program to extract the first 4 characters of the word 'COMPUTER' ('COMP').",
+        "starter": "word = 'COMPUTER'\nprint(word[:3])"
+    },
+
+    {
+        "question": "TASK 11 (Get Length):\nWrite a program that:\n1. Asks the user for a word.\n2. Prints the length of that word.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Lowercase Conversion):\nWrite a program that:\n1. Asks the user for a name (string).\n2. Prints the name converted to all lowercase.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Simple Concatenation):\nWrite a program that:\n1. Asks for a user's city and country.\n2. Prints a formatted string using concatenation: '<city>, <country>'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Extracting Last Character):\nWrite a program that:\n1. Asks the user for a password.\n2. Uses string indexing (and the length function) to print the **last** character of the password.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Slicing):\nWrite a program that:\n1. Defines a string `code = 'ABCDEFGHIJ'`.\n2. Uses slicing to print only the characters 'DEF'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Checking for Substring):\nWrite a program that:\n1. Asks the user for a sentence.\n2. Uses an `if` statement and the `in` operator to check if the word 'error' is present in the sentence.\n3. Print 'Error Detected' or 'OK'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Looping and Character Counting):\nWrite a program that:\n1. Defines a string `text = 'MISSISSIPPI'`.\n2. Uses a `for` loop to count how many times the letter 'I' appears.\n3. Print the final count (4).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Function to Check Length):\nWrite a program that:\n1. Defines a function `is_valid_pin(pin)` that takes a string `pin`.\n2. The function returns `True` if its length is exactly 4, otherwise `False`.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Get Initials):\nWrite a program that:\n1. Asks for the user's first name.\n2. Asks for the user's last name.\n3. Prints the initials, formatted with periods, e.g., 'J.D.' for John Doe.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Input Validation using WHILE):\nWrite a program that:\n1. Uses a `while` loop to continuously ask the user for a password.\n2. The loop only terminates when the password entered has a length of **at least 6** characters.",
+        "starter": ""
+    }
+  ],
+
+  "12. Lists (1D Arrays)": [
+
+    {
+        "question": "DEBUG TASK 1 (List Definition):\nFix the program so:\n1. The list `scores` is correctly defined with square brackets `[]`.\n2. The third element (85) is correctly printed.",
+        "starter": "scores = (90, 75, 85, 95)\nprint(scores[2])"
+    },
+    
+    {
+        "question": "DEBUG TASK 2 (Index Error):\nFix the program so it correctly prints the **first** element ('Apple'). (Remember, list indexing starts at 0).",
+        "starter": "fruits = ['Apple', 'Banana', 'Cherry']\nprint(fruits[1])"
+    },
+
+    {
+        "question": "DEBUG TASK 3 (Append Method):\nFix the program to correctly add the value 4 to the end of the `numbers` list using the `append` method.",
+        "starter": "numbers = [1, 2, 3]\nnumbers.add(4)\nprint(numbers)"
+    },
+
+    {
+        "question": "DEBUG TASK 4 (Modifying Element):\nFix the program to correctly change the third element (which is at index 2) from 'Pending' to 'Complete'.",
+        "starter": "status_list = ['Start', 'Running', 'Pending']\nstatus_list[3] = 'Complete'\nprint(status_list)"
+    },
+
+    {
+        "question": "DEBUG TASK 5 (Iteration Error):\nFix the program so the `for` loop correctly prints **each item** in the `colours` list individually.",
+        "starter": "colours = ['Red', 'Green', 'Blue']\nfor i in colours:\n    print(colours)"
+    },
+
+    {
+        "question": "DEBUG TASK 6 (Index Out of Range):\nFix the program so it correctly prints the **last** element in the `data` list. (Hint: use `len()` or the correct negative index).",
+        "starter": "data = [10, 20, 30]\nprint(data[3])"
+    },
+
+    {
+        "question": "DEBUG TASK 7 (List Length):\nFix the program so it correctly uses the `len()` function to calculate and print the number of elements in the `teams` list.",
+        "starter": "teams = ['A', 'B', 'C', 'D']\nprint(size(teams))"
+    },
+
+    {
+        "question": "DEBUG TASK 8 (Arithmetic on List Elements):\nFix the program. The string 'X' cannot be added to an integer. Ensure the loop only adds the numbers (5 and 10) to the total.",
+        "starter": "mixed_list = [5, 10, 'X']\ntotal = 0\nfor item in mixed_list:\n    total = total + item\nprint(total)"
+    },
+
+    {
+        "question": "DEBUG TASK 9 (Accessing within a Function):\nFix the program so the function `print_first` correctly accesses the first item of the list (using the parameter `data`) and prints it.",
+        "starter": "def print_first(data):\n    print(first_item)\n\nmy_list = ['Code', 'Data', 'Log']\nprint_first(my_list)"
+    },
+
+    {
+        "question": "DEBUG TASK 10 (Deleting an Element):\nFix the program to correctly remove the second element (index 1, 'Mars') from the `planets` list.",
+        "starter": "planets = ['Earth', 'Mars', 'Jupiter']\nplanets.delete('Mars')\nprint(planets)"
+    },
+
+    {
+        "question": "TASK 11 (Define and Access):\nWrite a program that:\n1. Defines a list `days` containing ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].\n2. Prints the item at index 4 ('Fri').",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 12 (Add Element):\nWrite a program that:\n1. Defines an empty list `tasks = []`.\n2. Uses `append` to add three different string tasks (e.g., 'Review', 'Debug', 'Test').\n3. Prints the complete `tasks` list.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 13 (Modify Element):\nWrite a program that:\n1. Defines a list of integers `points = [50, 65, 80]`.\n2. Changes the value of the second element (index 1) to 70.\n3. Prints the updated list.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 14 (Looping through Elements):\nWrite a program that:\n1. Defines a list `users = ['Abbie', 'Bob', 'Charlie']`.\n2. Uses a `for` loop to print each user's name with the prefix 'Hello, '.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 15 (Accumulator - Sum of List):\nWrite a program that:\n1. Defines a list of temperatures: `temps = [15, 20, 18, 22]`.\n2. Uses a `for` loop and an accumulator variable to calculate and print the total sum of the temperatures (75).",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 16 (Function Parameter):\nWrite a program that:\n1. Defines a function `list_size(data_list)` that takes a list as a parameter.\n2. Inside the function, print the total number of items in that list.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 17 (Deletion by Value):\nWrite a program that:\n1. Defines a list `items = ['Sword', 'Shield', 'Axe', 'Shield']`.\n2. Deletes the first occurrence of the item 'Shield' from the list.\n3. Prints the resulting list.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 18 (Building a List from Input):\nWrite a program that:\n1. Defines an empty list `scores`.\n2. Uses a `for` loop to ask the user to input 5 different integer scores.\n3. Adds each score to the `scores` list.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 19 (Simple Linear Search):\nWrite a program that:\n1. Defines a list of allowed passwords: `passwords = ['1234', 'secret', 'admin']`.\n2. Asks the user for a code (string).\n3. Uses an `if` statement and the `in` operator to check if the code is in the list.\n4. Print 'Access OK' or 'Access Denied'.",
+        "starter": ""
+    },
+
+    {
+        "question": "TASK 20 (Looping by Index):\nWrite a program that:\n1. Defines a list `prices = [10.50, 25.00, 5.25]`.\n2. Uses a `for` loop with the `range(len(prices))` function to print the price and its index, e.g., 'Item 0: 10.50'.",
+        "starter": ""
+    }
+  ],
+
+
+  "13. Key Algorithms": [
+    {
+      "question": "DEBUG TASK 1 (Linear Search Return):\nFix the `linear_search` function. It should return the **index** where the target is found, or **-1** if it is not found.",
+      "starter": "def linear_search(data, target):\n    for i in range(len(data)):\n        if data[i] == target:\n            # FIX THIS LINE\n            print(\"Found!\") \n    return -1\n\nlist_a = [10, 20, 30]\nresult = linear_search(list_a, 20)\nprint(\"Index:\", result)"
+    },
+    {
+      "question": "DEBUG TASK 2 (Binary Search Boundary):\nIn this Binary Search function, the search range is updated incorrectly when the middle value is too large. Fix the conditional logic to correctly update the **`high`** boundary.",
+      "starter": "def binary_search(data, target):\n    low = 0\n    high = len(data) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        mid_value = data[mid]\n\n        if mid_value == target:\n            return mid\n        elif mid_value < target:\n            low = mid + 1\n        else:\n            # FIX THIS LINE\n            low = mid # Incorrect update, should be high\n\n    return -1\n\nlist_b = [10, 20, 30, 40, 50]\n# Target 40 should be found at index 3\nresult = binary_search(list_b, 40)\nprint(\"Result:\", result)"
+    },
+    {
+      "question": "DEBUG TASK 3 (Bubble Sort Swap):\nComplete the inner loop of the Bubble Sort function by adding the correct Python logic to **swap** `data[j]` and `data[j+1]` when they are in the wrong order.",
+      "starter": "def bubble_sort(data):\n    n = len(data)\n    for i in range(n-1):\n        for j in range(n - 1 - i):\n            if data[j] > data[j+1]:\n                # ADD SWAP LOGIC HERE\n                pass\n    return data\n\nlist_c = [5, 1, 4, 2]\nprint(\"Before:\", list_c)\nprint(\"After:\", bubble_sort(list_c))"
+    },
+    {
+      "question": "IMPLEMENTATION TASK 4 (Linear Search):\nWrite a complete Linear Search function. Iterate through the list and return the index of the target, or -1 if the target is not found.",
+      "starter": "def linear_search(data, target):\n    # 1. Loop through the list using the index 'i'\n    # 2. Inside the loop, check if the element at data[i] matches the target\n    # 3. If they match, return the index 'i'\n    # 4. If the loop finishes without finding the target, return -1\n    pass\n\nlist_d = [1, 5, 8, 12, 15]\nprint(\"Target 8 found at index:\", linear_search(list_d, 8))\nprint(\"Target 10 found at index:\", linear_search(list_d, 10))"
+    },
+    {
+      "question": "IMPLEMENTATION TASK 5 (Binary Search):\nWrite a complete Binary Search function. Remember the list MUST be sorted. Use `low`, `high`, and `mid` pointers to manage the search boundaries.",
+      "starter": "def binary_search(data, target):\n    # 1. Initialize 'low' to 0 and 'high' to the last index\n    # 2. Start a 'while' loop that continues as long as 'low' is less than or equal to 'high'\n    # 3. Calculate 'mid' index using integer division\n    # 4. Check if data[mid] is equal to the target (return 'mid' if true)\n    # 5. If data[mid] is less than the target, move the 'low' pointer (mid + 1)\n    # 6. Otherwise (data[mid] is greater), move the 'high' pointer (mid - 1)\n    # 7. If the loop finishes, return -1\n    pass\n\nlist_e = [10, 20, 30, 40, 50]\nprint(\"Target 40 found at index:\", binary_search(list_e, 40))\nprint(\"Target 15 found at index:\", binary_search(list_e, 15))"
+    },
+    {
+      "question": "IMPLEMENTATION TASK 6 (Bubble Sort):\nWrite a complete Bubble Sort function to sort a list of numbers. Use nested loops and a three-line swap (or a single-line Python swap).",
+      "starter": "def bubble_sort(data):\n    # 1. Determine the length of the list, n\n    # 2. Create the OUTER loop to iterate n-1 times (i)\n    # 3. Create the INNER loop to iterate n - 1 - i times (j)\n    # 4. Inside the inner loop, check if data[j] is greater than data[j+1]\n    # 5. If it is, swap the two elements\n    # 6. Return the sorted list\n    pass\n\nlist_f = [8, 3, 6, 1, 9, 2]\nprint(\"Sorted list:\", bubble_sort(list_f))"
+    }
+  ],
+
+  "Miscellaneous Activities": [
+    {
+      "question": "1. **Procedure: List Summation**\n1. Define a **procedure** named `calculate_total` that takes a list of integers as an **indefinite link** (parameter).\n2. Use a **definite loop** (`for`) to calculate the sum of all elements in the list.\n3. Print the calculated total."
+    },
+    {
+      "question": "2. **Function: Area Calculation**\n1. Declare a **constant** `PI` with the value `3.14159`.\n2. Define a **function** named `calculate_circle_area` that takes a radius (number) as input.\n3. The function should calculate and **return** the area (`PI * radius * radius`)."
+    },
+    {
+      "question": "3. **Indefinite Loop: Positive Input**\n1. Define a **procedure** named `get_positive_number`.\n2. Use an **indefinite loop** (`while`) to repeatedly prompt the user to enter a number.\n3. Use a **decision** structure (`if`) to check if the number is greater than zero.\n4. If the number is positive, print a confirmation message and use `return` to exit the procedure."
+    },
+    {
+      "question": "4. **List Operation: Filtering Evens**\n1. Define a **function** `filter_evens` that accepts one **list** of numbers.\n2. Use a **definite loop** to iterate through the input list.\n3. Use a **comparison** to check if an element is even.\n4. Create and **return** a new list containing only the even numbers."
+    },
+    {
+      "question": "5. **String Manipulation: Acronym Generator**\n1. Define a **function** `create_acronym` that takes a multi-word **string** (e.g., \"Portable Network Graphics\").\n2. Use a **definite loop** to iterate over the words in the string (after splitting).\n3. Create a new **variable** (string) by concatenating the first letter of each word (in uppercase).\n4. **Return** the acronym (e.g., \"PNG\")."
+    },
+    {
+      "question": "6. **Decision Structure: Grade Converter**\n1. Define a **function** `convert_score_to_grade` that takes an integer score (0-100).\n2. Use **decisions** (`if`, `elif`, `else`) to return a letter grade based on these boundaries: 90+ = 'A', 80-89 = 'B', 70-79 = 'C', below 70 = 'F'."
+    },
+    {
+      "question": "7. **Looping and Counting: Factorial**\n1. Define a **function** `calculate_factorial` that takes a number `n`.\n2. Use a **definite loop** (or indefinite) to calculate the factorial of `n` (n!).\n3. Initialize a **variable** to 1 and multiply it by each integer from 1 to `n`.\n4. **Return** the final factorial result."
+    },
+    {
+      "question": "8. **List & Comparison: Max Value**\n1. Define a **function** `find_max` that takes a **list** of numbers.\n2. Initialize a **variable** `max_val` to the first element of the list.\n3. Use a **definite loop** and an **if statement** to compare `max_val` with every other element in the list.\n4. **Return** the largest value found."
+    },
+    {
+      "question": "9. **String Procedure: Multiplier**\n1. Define a **procedure** `print_stars` that takes a number (length) and a character (star or other symbol).\n2. Use the string multiplication operator to create a string of that character repeated by the length.\n3. Print the resulting string."
+    },
+    {
+      "question": "10. **Looping with Range: Times Table**\n1. Define a **procedure** `print_times_table` that takes an integer `n`.\n2. Use a **definite loop** with `range()` to iterate from 1 to 10.\n3. Inside the loop, print the product of `n` and the current iteration number, formatted without f-strings (e.g., using string concatenation or `str.format()`)."
+    },
+    {
+      "question": "11. **Comparison & Decisions: Leap Year**\n1. Define a **function** `is_leap_year` that takes an integer year.\n2. Use multiple **decisions** (`if`/`elif`) and **comparison** operators to determine if it is a leap year (divisible by 4, but not by 100 unless also divisible by 400).\n3. **Return** `True` or `False`."
+    },
+    {
+      "question": "12. **String Manipulation: Case Swapper**\n1. Define a **function** `swap_case_and_reverse` that takes a **string**.\n2. First, use built-in string methods to swap the case (uppercase becomes lowercase, and vice-versa).\n3. Then, use string slicing to **reverse** the modified string.\n4. **Return** the final string."
+    },
+    {
+      "question": "13. **Indefinite Loop: Password Attempts**\n1. Declare a **constant** `CORRECT_PASS` set to \"secret123\".\n2. Define a **procedure** `login_simulator`.\n3. Use an **indefinite loop** to prompt the user for a password up to 3 times.\n4. Use a **comparison** and **decision** structure to check if the entered password matches `CORRECT_PASS`.\n5. If correct, print a success message and `break` the loop. If 3 attempts fail, print an error message."
+    },
+    {
+      "question": "14. **List Modification: Add Prefix**\n1. Define a **function** `add_prefix_to_list` that takes a **list** of strings and a single prefix **string**.\n2. Use a **definite loop** to iterate over the list.\n3. Create a new **list** where each original string has the prefix prepended to it.\n4. **Return** the new list."
+    },
+    {
+      "question": "15. **Function: Character Count**\n1. Define a **function** `count_char_occurrences` that takes a **string** and a single character.\n2. Initialize a **variable** to zero.\n3. Use a **definite loop** to iterate through the input string.\n4. Use a **comparison** to check if the current character matches the target character (case-insensitive).\n5. **Return** the final count."
+    },
+    {
+      "question": "16. **Decision Logic: Ticket Price**\n1. Define a **function** `calculate_ticket_price` that takes an integer age.\n2. Use **decisions** (`if/elif/else`) to determine the price: Under 5 (Free/0), 5-18 ($10), Over 60 ($15), Others ($25).\n3. **Return** the price (number)."
+    },
+    {
+      "question": "17. **String Operation: Palindrome Checker**\n1. Define a **function** `is_palindrome` that takes a **string**.\n2. The function must first normalize the string (convert to lowercase and remove spaces).\n3. Compare the normalized string with its reversed version.\n4. **Return** `True` if it's a palindrome, `False` otherwise."
+    },
+    {
+      "question": "18. **List Procedure: Pop and Print**\n1. Define a **procedure** `process_queue` that takes a **list** (the queue).\n2. Use an **indefinite loop** (`while`) that continues as long as the list is not empty.\n3. Inside the loop, use the `.pop(0)` method to remove and retrieve the first item.\n4. Print the retrieved item."
+    },
+    {
+      "question": "19. **String & Loop: Remove Punctuation**\n1. Define a **function** `remove_punctuation` that takes a **string**.\n2. Declare a **constant** `PUNCTUATION` containing \"!?,.:;\" (or similar).\n3. Use a **definite loop** to build a new string that includes only characters that are **not** found in the `PUNCTUATION` constant.\n4. **Return** the clean string."
+    },
+    {
+      "question": "20. **Function Composition: Volume of a Cube**\n1. Define a helper **function** `square` that returns its input multiplied by itself.\n2. Define a main **function** `cube_volume` that takes a side length.\n3. The main function should calculate the volume by multiplying the side length by the result of `square(side_length)`.\n4. **Return** the final volume."
+    },
+    {
+      "question": "21. **Indefinite Loop: Guess the Secret Word**\n1. Define a **procedure** `guess_word_game`.\n2. Declare a **constant** `SECRET_WORD` (e.g., \"python\").\n3. Use an **indefinite loop** to ask the user to guess the word.\n4. Use a **decision** to check the guess. If correct, print success and `break`. If incorrect, give a hint (e.g., \"Try again, it's a programming language.\")."
+    },
+    {
+      "question": "22. **List & Loop: Separate Data Types**\n1. Define a **function** `separate_data` that takes a **list** containing mixed data types (integers and strings).\n2. Initialize two empty **lists**: one for strings and one for integers.\n3. Use a **definite loop** and type checking (like `isinstance()`) with an **if/else** to append items to the correct list.\n4. **Return** both lists as a tuple or list of lists."
+    },
+    {
+      "question": "23. **Decision: Simple Vending Machine**\n1. Define a **function** `get_drink` that takes a coin deposit (number) and a drink code ('A', 'B', or 'C').\n2. Use **constants** for prices: `PRICE_A = 1.50`, `PRICE_B = 2.00`, `PRICE_C = 1.00`.\n3. Use nested **decisions** (`if/elif/else`) to check if the code is valid AND if the deposit is sufficient.\n4. If successful, **return** the change (`deposit - price`). Otherwise, **return** the deposit (no purchase)."
+    },
+    {
+      "question": "24. **String Manipulation: Vowel Remover**\n1. Define a **function** `remove_vowels` that takes a **string**.\n2. Declare a **constant** `VOWELS` with all vowels (both cases).\n3. Use a **definite loop** to iterate over the input string and construct a new string containing only the consonants.\n4. **Return** the new string."
+    },
+    {
+      "question": "25. **List & Loop: Total Word Length**\n1. Define a **function** `total_word_length` that accepts a **list** of strings (words).\n2. Use a **definite loop** to iterate through the list.\n3. Use a **variable** to accumulate the length of each word.\n4. **Return** the final accumulated length."
+    },
+    {
+      "question": "26. **Function: Power Calculator**\n1. Define a **function** `calculate_power` that takes a base (number) and an exponent (positive integer).\n2. Initialize a result **variable** to 1.\n3. Use a **definite loop** that runs `exponent` number of times.\n4. In the loop, multiply the result variable by the base.\n5. **Return** the final result."
+    },
+    {
+      "question": "27. **Decision: Quadratic Roots Indicator**\n1. Define a **function** `check_roots` that takes coefficients `a`, `b`, and `c` for a quadratic equation.\n2. Calculate the discriminant: `delta = b * b - 4 * a * c`.\n3. Use **decisions** (`if/elif/else`) to **return** one of three strings: \"Two distinct real roots\" (if `delta > 0`), \"One real root\" (if `delta == 0`), or \"No real roots\" (if `delta < 0`)."
+    },
+    {
+      "question": "28. **List & Procedure: Rotate Elements**\n1. Define a **procedure** `rotate_list_right` that takes a **list** and a number of places `n`.\n2. Use the `list.pop()` and `list.insert(0, ...)` methods inside a **definite loop** that runs `n` times to rotate the list elements to the right.\n3. *Note: This procedure modifies the list directly (no return needed).* "
+    },
+    {
+      "question": "29. **String Manipulation: Title Case Check**\n1. Define a **function** `is_title_cased` that takes a **string**.\n2. Use the built-in `.istitle()` method to check if the string is correctly formatted as title case.\n3. **Return** `True` or `False`."
+    },
+    {
+      "question": "30. **Looping: Prime Number Checker**\n1. Define a **function** `is_prime` that takes an integer `n` greater than 1.\n2. Use a **definite loop** to check for divisors from 2 up to the number (or its square root).\n3. Use an **if statement** to immediately **return** `False` if a divisor is found.\n4. If the loop completes without finding a divisor, **return** `True`."
+    },
+    {
+      "question": "31. **Function: Generate Range**\n1. Define a **function** `create_number_list` that takes a start number and an end number.\n2. Use a **definite loop** (`for` and `range()`) to generate a new **list** of all integers from `start` (inclusive) to `end` (inclusive).\n3. **Return** the list."
+    },
+    {
+      "question": "32. **List & Logic: Has Duplicates**\n1. Define a **function** `check_for_duplicates` that takes a **list**.\n2. Use a **definite loop** to iterate through the list.\n3. Inside the loop, use a **comparison** or method (like checking if the count of an item is greater than 1) to determine if any element appears more than once.\n4. **Return** `True` immediately if a duplicate is found, otherwise `False` after checking all elements."
+    },
+    {
+      "question": "33. **Decision: BMI Calculator**\n1. Define a **function** `calculate_bmi_category` that takes weight (kg) and height (m).\n2. Calculate BMI: `bmi = weight / (height * height)`.\n3. Use **decisions** (`if/elif/else`) to **return** the category string: \"Underweight\" (BMI < 18.5), \"Normal\" (18.5 <= BMI < 25), \"Overweight\" (25 <= BMI < 30), or \"Obese\" (BMI >= 30)."
+    },
+    {
+      "question": "34. **String Manipulation: Word Counter**\n1. Define a **function** `count_words` that takes a **string** of text.\n2. Use the built-in `.split()` method to separate the string into a **list** of words.\n3. **Return** the length of the resulting list."
+    },
+    {
+      "question": "35. **Indefinite Loop: Running Total**\n1. Define a **procedure** `running_total`.\n2. Initialize a **variable** `total` to 0.\n3. Use an **indefinite loop** (`while True`) to continuously prompt the user for a number.\n4. If the user enters 'quit', print the final total and `break` the loop.\n5. Otherwise, convert the input to a number and add it to `total`."
+    },
+    {
+      "question": "36. **List & Loop: Element Index Finder**\n1. Define a **function** `find_first_index` that takes a **list** and a target item.\n2. Use a **definite loop** with `enumerate` to iterate through the list while keeping track of the index.\n3. Use a **comparison** to check if the current item matches the target.\n4. If a match is found, **return** the index immediately. If the loop completes, **return** -1."
+    },
+    {
+      "question": "37. **Function: Power of Two**\n1. Define a **function** `is_power_of_two` that takes a positive integer `n`.\n2. Use a **while loop** to repeatedly divide `n` by 2 as long as the remainder is 0.\n3. After the loop, check if the remaining value of `n` is 1.\n4. **Return** `True` if it is, `False` otherwise."
+    },
+    {
+      "question": "38. **String & Concatenation: Middle Character**\n1. Define a **function** `get_middle_char` that takes a **string**.\n2. Use a **decision** structure to check if the string length is odd or even.\n3. If odd, **return** the single middle character. If even, **return** the two middle characters concatenated together."
+    },
+    {
+      "question": "39. **Procedure: Print Sequence (FizzBuzz)**\n1. Define a **procedure** `print_sequence` that takes an integer `limit`.\n2. Use a **definite loop** to iterate from 1 up to (and including) `limit`.\n3. Inside the loop, use **decisions** to print the number followed by \" - Fizz\" if divisible by 3, \" - Buzz\" if divisible by 5, or \" - FizzBuzz\" if divisible by both. If none, just print the number."
+    },
+    {
+      "question": "40. **String & List: Censored Words**\n1. Define a **function** `censor_text` that takes a **string** of text and a **list** of words to censor.\n2. Use a **definite loop** to iterate over the list of words to be censored.\n3. Inside the loop, use the built-in `.replace()` method to replace each censored word in the text with a string of asterisks (`*`) of the same length as the word.\n4. **Return** the censored text."
+    },
+    {
+      "question": "41. **List: Calculate Average**\n1. Define a **function** `calculate_average` that accepts a **list** of numbers.\n2. Use a **definite loop** to calculate the sum of the numbers and keep track of the count.\n3. Use a **comparison** to ensure the list is not empty.\n4. **Return** the calculated average."
+    },
+    {
+      "question": "42. **List: Unique Elements**\n1. Define a **function** `get_unique_elements` that accepts a **list** with potential duplicates.\n2. Initialize a new empty **list**.\n3. Use a **definite loop** to iterate over the input list.\n4. Use an **if comparison** to check if the current element is already in the new list before appending it.\n5. **Return** the list of unique elements."
+    },
+    {
+      "question": "43. **Tuple: Distance Calculation**\n1. Define a **function** `calculate_distance` that takes two **tuples** representing 2D points (x1, y1) and (x2, y2).\n2. Calculate the squared difference for x and y coordinates.\n3. Calculate the distance (you may use a built-in math function for the square root).\n4. **Return** the calculated distance."
+    },
+    {
+      "question": "44. **List: List Reversal Procedure**\n1. Define a **procedure** `reverse_in_place` that takes a **list**.\n2. Use a **definite loop** (or indefinite) to iterate through half of the list's length.\n3. Swap the element at the current index with the element at the corresponding position from the end.\n4. *Note: The list should be modified directly.*"
+    },
+    {
+      "question": "45. **List: Filtering by Length**\n1. Define a **function** `filter_by_length` that takes a **list** of strings and an integer `min_length`.\n2. Use a **definite loop** to iterate through the list.\n3. Use a **comparison** to check if the length of the current string is greater than or equal to `min_length`.\n4. Create and **return** a new list containing only the strings that meet the length criteria."
+    },
+    {
+      "question": "46. **Decision: Triangle Type**\n1. Define a **function** `identify_triangle` that takes three numbers representing side lengths (`a`, `b`, `c`).\n2. Use **comparisons** and **decisions** (`if/elif/else`) to determine and **return** one of three strings: \"Equilateral\" (all equal), \"Isosceles\" (two equal), or \"Scalene\" (none equal)."
+    },
+    {
+      "question": "47. **String: Pig Latin Translator (Simple)**\n1. Define a **function** `to_pig_latin` that takes a single word **string**.\n2. Use a **decision** to check if the word starts with a vowel (a, e, i, o, u, case insensitive).\n3. If it starts with a vowel, **return** the word concatenated with \"way\".\n4. If it starts with a consonant, move the first letter to the end and concatenate with \"ay\". (e.g., 'cat' becomes 'atcay')."
+    },
+    {
+      "question": "48. **Loop: Nested Number Grid**\n1. Define a **procedure** `print_number_grid` that takes a single integer `size`.\n2. Use **nested definite loops** to print a square grid where each inner loop prints the current inner loop's index (j) followed by a space.\n3. Ensure each row is printed on a new line."
+    },
+    {
+      "question": "49. **List: Sum of Odd Indices**\n1. Define a **function** `sum_odd_indices` that takes a **list** of numbers.\n2. Initialize a **variable** for the sum.\n3. Use a **definite loop** with `range` and an appropriate step size (or a **comparison** using the modulo operator) to iterate only over the indices 1, 3, 5, etc.\n4. **Return** the accumulated sum."
+    },
+    {
+      "question": "50. **String: Check for Substring**\n1. Define a **function** `contains_substring` that takes a main **string** and a smaller **substring**.\n2. Use the built-in `in` operator or implement the check using a **definite loop** and slicing.\n3. **Return** `True` if the substring is found, otherwise `False`."
+    },
+    {
+      "question": "51. **String: Simple Rotation Cipher (Procedure)**\n1. Define a **procedure** `encrypt_simple` that takes a **string** and an integer key (e.g., 3).\n2. Use a **definite loop** to iterate through the string.\n3. Convert each character to its ASCII value, add the key, and convert it back to a character.\n4. Print the resulting encoded string."
+    },
+    {
+      "question": "52. **String: Reverse Word Order**\n1. Define a **function** `reverse_word_order` that takes a sentence **string**.\n2. Use the `.split()` method to turn the sentence into a **list** of words.\n3. Reverse the order of the words in the list.\n4. **Return** the list of words joined back into a single string with spaces."
+    },
+    {
+      "question": "53. **String: Number Validator**\n1. Define a **function** `is_valid_integer` that takes a **string**.\n2. Use a **definite loop** and **comparison** (or string methods like `.isdigit()`) to check if the string contains only digits and optionally a leading sign ('-' or '+').\n3. **Return** `True` if it represents a valid integer, `False` otherwise."
+    },
+    {
+      "question": "54. **String: Remove All Spaces**\n1. Define a **function** `remove_all_spaces` that takes a **string**.\n2. Initialize an empty **string** variable.\n3. Use a **definite loop** to iterate over the input string.\n4. Use a **comparison** to check if the current character is a space; if not, concatenate it to the new string.\n5. **Return** the new string."
+    },
+    {
+      "question": "55. **List: Capitalize First Letter**\n1. Define a **procedure** `capitalise_names` that takes a **list** of strings (names).\n2. Use a **definite loop** with indices (or `enumerate`) to iterate over the list.\n3. Use string slicing and the `.upper()` method to replace the original string with a version that has only the first letter capitalised.\n4. *Note: The original list should be modified.*"
+    },
+    {
+      "question": "56. **Decision: Quadrant Checker**\n1. Define a **function** `get_quadrant` that takes two coordinates (`x`, `y`).\n2. Use **comparisons** and **decisions** (`if/elif/else`) to determine the quadrant based on the sign of `x` and `y`.\n3. **Return** \"Quadrant I\", \"Quadrant II\", \"Quadrant III\", \"Quadrant IV\", or \"Axis\" if either coordinate is zero."
+    },
+    {
+      "question": "57. **Loop: Exponential Growth**\n1. Define a **function** `simulate_growth` that takes a `start_value`, a `growth_rate` (e.g., 1.1 for 10% growth), and `periods` (integer).\n2. Initialize a **variable** with the `start_value`.\n3. Use a **definite loop** to simulate the growth over the specified periods.\n4. **Return** the final value."
+    },
+    {
+      "question": "58. **String: Prefix/Suffix Checker**\n1. Define a **function** `check_ends` that takes a **string** and a `prefix` string and a `suffix` string.\n2. Use slicing and **comparison** to check if the main string starts with the `prefix` AND ends with the `suffix`.\n3. **Return** `True` if both conditions are met, otherwise `False`."
+    },
+    {
+      "question": "59. **List: Element Frequency Counter**\n1. Define a **function** `count_element_frequency` that takes a **list** of elements and a single `target` element.\n2. Initialize a **variable** to zero.\n3. Use a **definite loop** and a **comparison** to count how many times the `target` element appears in the list.\n4. **Return** the final count."
+    },
+    {
+      "question": "60. **Procedure: Print Star Triangle**\n1. Define a **procedure** `print_triangle` that takes an integer `height`.\n2. Use a **definite loop** to iterate from 1 up to `height`.\n3. Inside the loop, use **string manipulation** (multiplication) to print a line of asterisks (`*`) that corresponds to the current row number."
+    },
+    {
+      "question": "61. **Indefinite Loop: Integer Input Until Stop**\n1. Define a **procedure** `collect_integers`.\n2. Use an **indefinite loop** (`while True`) to repeatedly ask the user for input.\n3. Use a **decision** to check if the input is the word 'STOP'. If so, break the loop.\n4. If the input is not 'STOP', use a **decision** to check if the input is a valid integer (using string methods or a try/except structure), and print a confirmation or error message."
+    },
+    {
+      "question": "62. **Function: Simple Calculator**\n1. Define a **function** `basic_calculate` that takes two numbers (`num1`, `num2`) and an operator **string** (`op`, e.g., '+', '-', '*', '/').\n2. Use **decisions** (`if/elif/else`) to check the operator.\n3. Perform the correct arithmetic operation.\n4. Handle division by zero with a **comparison** and **return** a clear error message string instead of a number if it occurs. Otherwise, **return** the result."
+    },
+    {
+      "question": "63. **List: Remove Every Nth Element**\n1. Define a **function** `remove_every_nth` that takes a **list** and an integer `n`.\n2. Initialize a new empty **list**.\n3. Use a **definite loop** with `enumerate` to track the index.\n4. Use a **comparison** with the modulo operator (`%`) to determine if the index should be skipped (i.e., if it is the Nth element).\n5. **Return** the new list."
+    },
+    {
+      "question": "64. **String: Character Replacement**\n1. Define a **function** `replace_char` that takes a **string**, an `old_char`, and a `new_char`.\n2. Initialize an empty **string**.\n3. Use a **definite loop** to iterate through the input string.\n4. Use an **if comparison** to check if the current character matches `old_char`.\n5. Concatenate either `new_char` or the current character to the new string.\n6. **Return** the modified string."
+    },
+    {
+      "question": "65. **Constant/Function: Currency Conversion**\n1. Declare a **constant** `EXCHANGE_RATE` (e.g., `1.25`).\n2. Define a **function** `convert_currency` that takes an `amount` in base currency.\n3. Calculate the new amount using the constant.\n4. **Return** the converted amount."
+    },
+    {
+      "question": "66. **List: Flatten a Nested List (Depth 1)**\n1. Define a **function** `flatten_list` that takes a **list** where some elements are also lists (e.g., `[1, [2, 3], 4]`).\n2. Initialize a new empty **list**.\n3. Use a **definite loop** to iterate over the main list.\n4. Use type checking (`isinstance()`) with a **decision** to check if the current item is itself a list.\n5. If it is a list, use a **nested definite loop** to add its contents to the new list; otherwise, add the item directly.\n6. **Return** the flattened list."
+    },
+    {
+      "question": "67. **Decision: Point in Rectangle**\n1. Define a **function** `is_inside_rect` that takes a point (`x`, `y`) and rectangle boundaries (`min_x`, `max_x`, `min_y`, `max_y`).\n2. Use **comparisons** and logical operators (`and`) to check if `x` is between `min_x` and `max_x` AND `y` is between `min_y` and `max_y`.\n3. **Return** `True` or `False`."
+    },
+    {
+      "question": "68. **String: Count Uppercase Words**\n1. Define a **function** `count_uppercase_words` that takes a sentence **string**.\n2. Split the string into a **list** of words.\n3. Initialize a **variable** to count.\n4. Use a **definite loop** and the string method `.isupper()` with a **decision** to count words that are entirely in uppercase.\n5. **Return** the count."
+    },
+    {
+      "question": "69. **Procedure: Print Countdown**\n1. Define a **procedure** `print_countdown` that takes an integer `start`.\n2. Use a **definite loop** (or indefinite) to iterate backward from `start` down to 1.\n3. Print the number in each iteration."
+    },
+    {
+      "question": "70. **List & Loop: Cumulative Sum**\n1. Define a **function** `get_cumulative_sum` that takes a **list** of numbers.\n2. Initialize a `current_sum` **variable** to 0 and a `cumulative_list`.\n3. Use a **definite loop** to iterate through the input list.\n4. Add the current element to `current_sum`, and append `current_sum` to the `cumulative_list`.\n5. **Return** the `cumulative_list` (e.g., `[1, 2, 3]` -> `[1, 3, 6]`)."
+    },
+    {
+      "question": "71. **String Procedure: Print Vertical**\n1. Define a **procedure** `print_vertical` that takes a **string**.\n2. Use a **definite loop** to iterate through each character of the string.\n3. Print each character on a new line."
+    },
+    {
+      "question": "72. **List: Insert Zeros Between Elements**\n1. Define a **function** `insert_zeros` that takes a **list** of numbers.\n2. Initialize a new empty **list**.\n3. Use a **definite loop** to iterate through the original list.\n4. Append the current element to the new list, followed by the integer 0.\n5. **Return** the new list (e.g., `[1, 2]` -> `[1, 0, 2, 0]`)."
+    },
+    {
+      "question": "73. **Function: Check Date Format (Simple)**\n1. Define a **function** `is_simple_date` that takes a **string** (e.g., '12-05-2024').\n2. Use a **comparison** or string method to check if the string length is 10 and if the separator character (e.g., '-') is in the expected positions.\n3. **Return** `True` or `False`."
+    },
+    {
+      "question": "74. **Indefinite Loop: Menu Selection**\n1. Define a **procedure** `run_menu`.\n2. Use an **indefinite loop** (`while True`) to repeatedly display a simple menu (e.g., '1. Start, 2. Options, 3. Exit').\n3. Prompt the user for a choice.\n4. Use **decisions** (`if/elif/else`) to print a confirmation for choices 1 and 2, and `break` the loop for choice 3."
+    },
+    {
+      "question": "75. **List: Filter Out None Values**\n1. Define a **function** `remove_none_values` that takes a **list** containing various elements, including the value `None`.\n2. Initialize a new empty **list**.\n3. Use a **definite loop** to iterate over the input list.\n4. Use a **comparison** (`!=`) with the value `None`.\n5. **Return** the new list containing only non-`None` elements."
+    },
+    {
+      "question": "76. **String: Simple Text Scrambler**\n1. Define a **function** `scramble_text` that takes a **string**.\n2. Use a **definite loop** with indices (or slicing) to swap adjacent characters in the string (e.g., 'ABCD' -> 'BADC').\n3. **Return** the scrambled string."
+    },
+    {
+      "question": "77. **Function: Round to Nearest Ten**\n1. Define a **function** `round_to_ten` that takes an integer `n`.\n2. Use the modulo operator (`%`) and a **comparison** with 5 to check if the number should be rounded up or down.\n3. Calculate and **return** the nearest multiple of ten."
+    },
+    {
+      "question": "78. **List: Check Sorted Order**\n1. Define a **function** `is_sorted` that takes a **list** of numbers.\n2. Use a **definite loop** that iterates from the second element to the end.\n3. Use a **comparison** (`<`) to check if the current element is less than the previous element.\n4. If the comparison is true, **return** `False` immediately. If the loop completes, **return** `True`."
+    },
+    {
+      "question": "79. **String: Check for All Unique Characters**\n1. Define a **function** `has_unique_chars` that takes a **string**.\n2. Initialize an empty **list** (`seen_chars`).\n3. Use a **definite loop** to iterate through the string.\n4. Use a **comparison** to check if the current character is already in `seen_chars`.\n5. If found, **return** `False` immediately; otherwise, add the character to `seen_chars`. If the loop finishes, **return** `True`."
+    },
+    {
+      "question": "80. **Procedure: Generate Fibonacci Sequence**\n1. Define a **procedure** `print_fibonacci` that takes an integer `limit` (the number of terms to print).\n2. Initialize two **variables** `a` and `b` to 0 and 1.\n3. Use a **definite loop** to iterate `limit` times.\n4. In each iteration, print `a`, then update `a` and `b` (e.g., `a, b = b, a + b`)."
+    },
+    {
+      "question": "81. **Indefinite Loop: Input Ranged Number**\n1. Define a **procedure** `get_number_in_range` that takes `min_val` and `max_val`.\n2. Use an **indefinite loop** (`while True`) to ask the user for a number.\n3. Use **comparisons** (`<`, `>`) and **decisions** to check if the number falls within the specified range (inclusive).\n4. If valid, print confirmation and `return` the number; otherwise, print an error and continue the loop."
+    },
+    {
+      "question": "82. **List: Interleave Two Lists**\n1. Define a **function** `interleave_lists` that takes two **lists** of equal length.\n2. Initialize a new empty **list**.\n3. Use a **definite loop** with `range` and the list length.\n4. In each iteration, append an element from the first list, followed by the corresponding element from the second list.\n5. **Return** the new interleaved list."
+    },
+    {
+      "question": "83. **String: Remove Leading/Trailing Zeros**\n1. Define a **function** `trim_zeros` that takes a **string** of digits (e.g., '0012300').\n2. Use a **definite loop** (or indefinite) and **comparison** to find the index of the first non-zero digit.\n3. Use similar logic from the end to find the last non-zero digit.\n4. Use slicing to **return** the trimmed string."
+    },
+    {
+      "question": "84. **Decision: Day of Week Name**\n1. Define a **function** `get_day_name` that takes an integer `day_num` (1=Monday, 7=Sunday).\n2. Use **decisions** (`if/elif/else`) or a sequential **list** of day names and the index to **return** the correct day name string.\n3. If the number is out of the 1-7 range, **return** \"Invalid Day\"."
+    },
+    {
+      "question": "85. **Function: Simple Interest Calculation**\n1. Define a **function** `calculate_simple_interest` that takes `principal`, `rate` (as a decimal), and `time` (in years).\n2. Calculate the interest using the formula: `Interest = Principal * Rate * Time`.\n3. **Return** the calculated interest amount."
+    },
+    {
+      "question": "86. **List: Find Second Smallest**\n1. Define a **function** `find_second_smallest` that takes a **list** of numbers (assume length >= 2).\n2. Initialize two **variables**, `smallest` and `second_smallest`, setting them to large initial values (or the first two unique elements).\n3. Use a **definite loop** and **comparisons** to update both variables correctly as you iterate through the list.\n4. **Return** the `second_smallest` value."
+    },
+    {
+      "question": "87. **String: Uppercase After Period (Simple)**\n1. Define a **function** `fix_sentence_casing` that takes a **string**.\n2. Convert the entire string to lowercase first.\n3. Use a **definite loop** with indices.\n4. Use a **comparison** to check if the previous character was a period ('.'). If so, use string slicing and `.upper()` to capitalise the current character.\n5. **Return** the modified string."
+    },
+    {
+      "question": "88. **Procedure: Print List with Index**\n1. Define a **procedure** `print_indexed_list` that takes a **list**.\n2. Use a **definite loop** with the `enumerate` function to iterate over the list, getting both the index and the value.\n3. Print the index (starting at 1) followed by the value, using string concatenation (no f-strings)."
+    },
+    {
+      "question": "89. **Constant/Procedure: Simple Tax Calculation**\n1. Declare a **constant** `TAX_RATE` (e.g., `0.05`).\n2. Define a **procedure** `print_tax_breakdown` that takes an integer `income`.\n3. Use a **comparison** and **decision** (`if/else`) to apply the tax only if the income is over a certain threshold (e.g., $1000).\n4. Print the tax amount calculated."
+    },
+    {
+      "question": "90. **Loop: Sum Digits of a Number**\n1. Define a **function** `sum_digits` that takes a positive integer `n`.\n2. Initialize a **variable** for the sum.\n3. Use a **while loop** that continues as long as `n` is greater than 0.\n4. Inside the loop, use the modulo operator (`% 10`) to get the last digit, add it to the sum, and use integer division (`// 10`) to remove the last digit.\n5. **Return** the final sum."
+    },
+    {
+      "question": "91. **List: Shift Elements Left**\n1. Define a **function** `shift_left` that takes a **list** and returns a new list where every element has moved one position to the left, and the first element moves to the end.\n2. Initialize a new empty **list**.\n3. Use slicing to get all elements from index 1 to the end.\n4. Concatenate this slice with a list containing only the original first element.\n5. **Return** the new list."
+    },
+    {
+      "question": "92. **String: Count Sentences**\n1. Define a **function** `count_sentences` that takes a text **string**.\n2. Define a **constant** of sentence-ending punctuation (`.?!`).\n3. Use a **definite loop** to iterate through the string.\n4. Use a **comparison** to count how many characters match the sentence-ending punctuation constant.\n5. **Return** the total count."
+    },
+    {
+      "question": "93. **List: Check Equal Sum Halves**\n1. Define a **function** `has_equal_halves` that takes a **list** of numbers with an even length.\n2. Determine the midpoint index.\n3. Use two separate **definite loops** (or slicing) to calculate the sum of the first half and the sum of the second half.\n4. Use a **comparison** to check if the two sums are equal.\n5. **Return** `True` or `False`."
+    },
+    {
+      "question": "94. **Indefinite Loop: Factor Finder**\n1. Define a **procedure** `print_factors` that takes an integer `n`.\n2. Initialize a counter **variable** `i` to 1.\n3. Use an **indefinite loop** (`while`) that continues as long as `i` is less than or equal to `n`.\n4. Use a **comparison** with the modulo operator (`%`) to check if `i` is a factor of `n`.\n5. If it is a factor, print `i`. Increment `i` in every loop cycle."
+    },
+    {
+      "question": "95. **Function: Cartesian Product Size (Tuple)**\n1. Define a **function** `cartesian_size` that takes two **lists** (list\_a, list\_b).\n2. Use built-in functions or a **variable** to find the length of each list.\n3. Calculate the size of the Cartesian product (length A * length B).\n4. **Return** the size."
+    },
+    {
+      "question": "96. **String: Insert Separator**\n1. Define a **function** `insert_separator` that takes a **string** and a separator **string** (e.g., '-').\n2. Initialize an empty **string**.\n3. Use a **definite loop** to iterate through the input string.\n4. Concatenate the current character and the separator to the new string.\n5. Use slicing to ensure the final separator is removed before **returning** the result (e.g., 'ABC' and '-' -> 'A-B-C')."
+    },
+    {
+      "question": "97. **Procedure: Print Checkerboard Pattern**\n1. Define a **procedure** `print_checkerboard` that takes an integer `size`.\n2. Use **nested definite loops**.\n3. Use the **comparison** of the outer and inner loop indices (e.g., checking if `(i + j)` is even) with a **decision** to print either '#' or ' ' in sequence.\n4. Print a new line after each inner loop completes."
+    },
+    {
+      "question": "98. **List: Group by First Letter**\n1. Define a **function** `group_by_initial` that takes a **list** of strings.\n2. Initialize a **list** of lists (or a manual structure) to store groups.\n3. Use a **definite loop** to iterate over the input list.\n4. Use **comparison** to determine the initial letter of the current string and append the string to the appropriate group (e.g., 'A' group, 'B' group, etc.).\n5. **Return** the list of lists."
+    },
+    {
+      "question": "99. **Decision: Rock Paper Scissors (Function)**\n1. Define a **function** `determine_winner` that takes two player choices as **strings** ('R', 'P', or 'S').\n2. Use **decisions** (`if/elif/else`) and **comparisons** to determine the winner based on the rules.\n3. **Return** 'Player 1 Wins', 'Player 2 Wins', or 'Tie'."
+    },
+    {
+      "question": "100. **Loop/List: Fill List with Powers**\n1. Define a **function** `generate_powers` that takes a base number and an integer `limit`.\n2. Initialize an empty **list**.\n3. Use a **definite loop** (or indefinite) to iterate from exponent 0 up to `limit`.\n4. Calculate the base raised to the power of the current exponent and append the result to the list.\n5. **Return** the list."
+    }
+  ]        };
+        
+        // Progress tracking - 0 = not started, 1 = partial, 2 = complete
+        let taskProgress = {};
+        let taskIdMap = {};
+        let idCounter = 0;
+        let currentCategory = "1. Variables, Constants and Basic Input/Output";
+        let currentTaskIndex = 0;
+
+        // --- NEW GLOBAL COOLDOWN VARIABLES ---
+        let lastCheckTime = 0;
+        let lastTipTime = 0;
+        const COOLDOWN_MS = 60000; // 60 seconds (1 minute) cooldown
+        // ------------------------------------
+
+        // --- PROGRESS ENCODING/DECODING FUNCTIONS ---
+        function generateSalt() {
+            const salt = new Uint8Array(4);
+            for (let i = 0; i < 4; i++) {
+                salt[i] = Math.floor(Math.random() * 256);
+            }
+            return salt;
+        }
+
+        function xorEncrypt(data, salt) {
+            const result = new Uint8Array(data.length);
+            for (let i = 0; i < data.length; i++) {
+                result[i] = data[i] ^ salt[i % salt.length];
+            }
+            return result;
+        }
+
+        function encodeProgress() {
+            const totalTasks = Object.keys(taskIdMap).length;
+            const numBytes = Math.ceil(totalTasks / 4);
+            const dataArray = new Uint8Array(numBytes);
+            
+            for (let i = 0; i < totalTasks; i++) {
+                const status = taskProgress[i] || 0;
+                const mapped = status;
+                
+                const byteIndex = Math.floor(i / 4);
+                const bitOffset = (i % 4) * 2;
+                dataArray[byteIndex] |= (mapped << bitOffset);
+            }
+            
+            const salt = generateSalt();
+            const encrypted = xorEncrypt(dataArray, salt);
+            
+            const combined = new Uint8Array(salt.length + encrypted.length);
+            combined.set(salt, 0);
+            combined.set(encrypted, salt.length);
+            
+            let binary = '';
+            for (let i = 0; i < combined.length; i++) {
+                binary += String.fromCharCode(combined[i]);
+            }
+            
+            const base64 = btoa(binary);
+            return 'PY1.' + base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        function decodeProgress(code) {
+            try {
+                if (!code.startsWith('PY1.')) {
+                    alert('Invalid progress code format.');
+                    return null;
+                }
+                
+                let base64 = code.substring(4);
+                base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+                
+                while (base64.length % 4) {
+                    base64 += '=';
+                }
+                
+                const binary = atob(base64);
+                const combined = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    combined[i] = binary.charCodeAt(i);
+                }
+                
+                const salt = combined.slice(0, 4);
+                const encrypted = combined.slice(4);
+                const decrypted = xorEncrypt(encrypted, salt);
+                
+                const newProgress = {};
+                const totalTasks = Object.keys(taskIdMap).length;
+                
+                for (let i = 0; i < totalTasks; i++) {
+                    const byteIndex = Math.floor(i / 4);
+                    const bitOffset = (i % 4) * 2;
+                    
+                    if (byteIndex < decrypted.length) {
+                        const mapped = (decrypted[byteIndex] >> bitOffset) & 3;
+                        const status = mapped;
+                        
+                        if (status !== 0) {
+                            newProgress[i] = status;
+                        }
+                    }
+                }
+                
+                return newProgress;
+            } catch (e) {
+                console.error('Failed to decode progress:', e);
+                return null;
+            }
+        }
+
+        function showProgressCodeModal() {
+            const modal = document.getElementById('progressCodeModal');
+            updateProgressDisplay();
+            modal.classList.add('show');
+        }
+
+        function closeProgressCodeModal(event) {
+            const modal = document.getElementById('progressCodeModal');
+            if (!event || event.target === modal || event.target.classList.contains('progress-modal-close')) {
+                modal.classList.remove('show');
+            }
+        }
+
+        function loadProgressCode() {
+            const input = document.getElementById('progressCodeInput');
+            const code = input.value.trim();
+            
+            if (!code) {
+                alert('Please enter a progress code.');
+                return;
+            }
+            
+            const decoded = decodeProgress(code);
+            if (decoded) {
+                taskProgress = decoded;
+                alert('Progress loaded successfully!');
+                input.value = '';
+                updateProgressDisplay();
+            } else {
+                alert('Invalid progress code. Please check and try again.');
+            }
+        }
+
+        function copyProgressCode() {
+            const code = document.getElementById('progressCodeDisplay').textContent;
+            if (code === 'Complete a task to generate your progress code') {
+                alert('Complete a task first to generate a progress code.');
+                return;
+            }
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Progress code copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy. Please copy manually.');
+            });
+        }
+
+        function downloadProgressCode() {
+            const code = document.getElementById('progressCodeDisplay').textContent;
+            if (code === 'Complete a task first to generate a progress code') {
+                alert('Complete a task first to generate a progress code.');
+                return;
+            }
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'python-progress.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function updateProgressDisplay() {
+            const code = encodeProgress();
+            document.getElementById('progressCodeDisplay').textContent = code;
+        }
+
+        async function initPyodide() {
+            try {
+                pyodide = await loadPyodide();
+                document.getElementById('status').textContent = 'Ready to run Python code!';
+                document.getElementById('runBtn').disabled = false;
+                document.getElementById('checkBtn').disabled = false;
+                document.getElementById('output').textContent = 'Ready! Click "Run Code" to execute your Python code.';
+                document.getElementById('output').classList.remove('loading');
+                
+                // Initialize progress tracking
+                initializeProgress();
+                loadCurrentTask();
+            } catch (err) {
+                document.getElementById('status').textContent = 'Error loading Python';
+                document.getElementById('output').innerHTML = '<span class="error">Failed to load Python environment: ' + err.message + '</span>';
+            }
+        }
+        
+        function initializeProgress() {
+            // Assign unique IDs to each task
+            for (const category in pythonChallenges) {
+                pythonChallenges[category].forEach(task => {
+                    if (!task.id) {
+                        task.id = idCounter++;
+                        taskIdMap[task.id] = {
+                            category: category,
+                            question: task.question
+                        };
+                    }
+                });
+            }
+        }
+        
+        function loadCurrentTask() {
+            const task = pythonChallenges[currentCategory][currentTaskIndex];
+            document.querySelector('.task-subtitle').textContent = 
+                `${currentCategory} - Task ${currentTaskIndex + 1}/${pythonChallenges[currentCategory].length}`;
+            document.querySelector('.task-question').textContent = task.question;
+            
+            // Load starter code if available
+            const codeEditor = document.getElementById('code');
+            if (task.starter) {
+                codeEditor.value = task.starter;
+            } else {
+                codeEditor.value = '# Create code here to complete the challenge shown.\n\n';
+            }
+        }
+        
+        function markTaskPartial() {
+            const task = pythonChallenges[currentCategory][currentTaskIndex];
+            // Only update if not already complete
+            if (taskProgress[task.id] !== 2) {
+                taskProgress[task.id] = 1;
+                updateProgressDisplay();
+            }
+        }
+        
+        function markTaskComplete() {
+            const task = pythonChallenges[currentCategory][currentTaskIndex];
+            taskProgress[task.id] = 2;
+            updateProgressDisplay();
+        }
+        
+        function showProgressMap() {
+            let existingModal = document.getElementById('progressModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            let html = '<div style="margin-bottom: 20px;">';
+            html += '<div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;">';
+            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #ddd; border-radius: 3px;"></div><span>Not Started</span></div>';
+            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #fbbf24; border-radius: 3px;"></div><span>Partial</span></div>';
+            html += '<div style="display: flex; align-items: center; gap: 8px;"><div style="width: 20px; height: 20px; background: #4CAF50; border-radius: 3px;"></div><span>Complete</span></div>';
+            html += '</div></div>';
+            
+            for (const category in pythonChallenges) {
+                const tasks = pythonChallenges[category];
+                
+                html += `<div style="margin-bottom: 30px;">`;
+                html += `<h3 style="color: #667eea; margin-bottom: 15px;">${category}</h3>`;
+                html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(35px, 1fr)); gap: 6px;">`;
+                
+                tasks.forEach((task, idx) => {
+                    const status = taskProgress[task.id] || 0;
+                    let bgColor = '#ddd';
+                    let statusText = 'Not started';
+                    
+                    if (status === 1) {
+                        bgColor = '#fbbf24';
+                        statusText = 'Partially complete';
+                    } else if (status === 2) {
+                        bgColor = '#4CAF50';
+                        statusText = 'Complete';
+                    }
+                    
+                    const title = statusText + ': ' + task.question.substring(0, 50) + '...';
+                    const isCurrent = category === currentCategory && idx === currentTaskIndex;
+                    const border = isCurrent ? '3px solid #667eea' : 'none';
+                    
+                    html += `<div onclick="loadTask('${category}', ${idx})" style="padding: 8px; background: ${bgColor}; border-radius: 5px; cursor: pointer; text-align: center; font-weight: 600; font-size: 11px; border: ${border}; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" title="${title}">${idx + 1}</div>`;
+                });
+                
+                html += `</div>`;
+                
+                const partial = tasks.filter(t => taskProgress[t.id] === 1).length;
+                const completed = tasks.filter(t => taskProgress[t.id] === 2).length;
+                html += `<div style="margin-top: 10px; font-size: 0.9rem; color: #666;">`;
+                html += `Progress: ${completed} complete, ${partial} partial, ${tasks.length - completed - partial} not started`;
+                html += `</div>`;
+                html += `</div>`;
+            }
+            
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'progressModal';
+            modalDiv.style.cssText = 'display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999999; overflow-y: auto;';
+            modalDiv.innerHTML = `
+                <div style="max-width: 900px; margin: 50px auto; background: white; border-radius: 15px; padding: 40px; position: relative;">
+                    <button onclick="closeProgressMap()" style="position: absolute; top: 20px; right: 20px; background: #ccc; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 20px; cursor: pointer; line-height: 1;">×</button>
+                    <h2 style="margin-bottom: 30px; color: #667eea;">Your Progress</h2>
+                    <div>${html}</div>
+                </div>
+            `;
+            
+            modalDiv.addEventListener('click', function(e) {
+                if (e.target === modalDiv) {
+                    closeProgressMap();
+                }
+            });
+            
+            document.body.appendChild(modalDiv);
+        }
+        
+        function closeProgressMap() {
+            const modal = document.getElementById('progressModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        function loadTask(category, taskIndex) {
+            currentCategory = category;
+            currentTaskIndex = taskIndex;
+            loadCurrentTask();
+            closeProgressMap();
+            document.getElementById('output').textContent = 'Task loaded. Write your code and click "Run Code".';
+            document.getElementById('feedback').innerHTML = 'Click "Check Solution" to get feedback on your code.';
+        }
+        
+        function nextTask() {
+            if (currentTaskIndex < pythonChallenges[currentCategory].length - 1) {
+                currentTaskIndex++;
+            } else {
+                const categories = Object.keys(pythonChallenges);
+                const currentCatIndex = categories.indexOf(currentCategory);
+                if (currentCatIndex < categories.length - 1) {
+                    currentCategory = categories[currentCatIndex + 1];
+                    currentTaskIndex = 0;
+                } else {
+                    alert('Congratulations! You\'ve completed all available tasks!');
+                    return;
+                }
+            }
+            loadTask(currentCategory, currentTaskIndex);
+        }
+
+        async function runCode() {
+            const code = document.getElementById('code').value;
+            const output = document.getElementById('output');
+            
+            output.textContent = 'Running...';
+            document.getElementById('runBtn').disabled = true;
+
+            try {
+                pyodide.runPython(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+                `);
+
+                await pyodide.runPythonAsync(code);
+
+                const stdout = pyodide.runPython('sys.stdout.getvalue()');
+                output.textContent = stdout || '(No output)';
+            } catch (err) {
+                output.innerHTML = '<span class="error">Error: ' + err.message + '</span>';
+            } finally {
+                document.getElementById('runBtn').disabled = false;
+            }
+        }
+
+        async function checkCode() {
+            const code = document.getElementById('code').value.trim();
+            const feedbackDiv = document.getElementById('feedback');
+            const checkBtn = document.getElementById('checkBtn');
+            
+            // Check cooldown period
+            const now = Date.now();
+            const timeSinceLastCheck = now - lastCheckTime;
+            if (timeSinceLastCheck < COOLDOWN_MS) {
+                const secondsRemaining = Math.ceil((COOLDOWN_MS - timeSinceLastCheck) / 1000);
+                feedbackDiv.innerHTML = `<span class="feedback-error">Sorry - our programming expert has lots of people to help. You can ask for help once every minute. Please wait ${secondsRemaining} more seconds.</span>`;
+                return;
+            }
+            
+            if (!code) {
+                feedbackDiv.innerHTML = '<span class="feedback-error">Please write some code before checking!</span>';
+                return;
+            }
+            
+            lastCheckTime = now; // Update the last check time
+            feedbackDiv.innerHTML = '<div class="feedback-loading">🤔 Analysing your code...</div>';
+            checkBtn.disabled = true;
+            
+            try {
+                const currentTask = pythonChallenges[currentCategory][currentTaskIndex];
+                
+                const prompt = `You are a helpful and encouraging computer science teacher reviewing a student's Python code for a GCSE-level programming task.
+
+Task Requirements:
+${currentTask.question}
+
+Student's Code:
+\`\`\`python
+${code}
+\`\`\`
+
+Please analyze the code structure, logic, and whether it meets the requirements WITHOUT executing it. Look at:
+- Whether all required variables are created with correct names
+- Whether the logic and calculations are correct
+- Whether output statements are present where needed
+- Whether the code structure makes sense
+
+Please provide feedback using UK spellings throughout. Your feedback should:
+
+1. Start with a brief assessment using EXACTLY one of these phrases:
+   - "Yes - fully complete" if all requirements are met
+   - "Partially complete" if some requirements are met but not all
+   - "No - not complete" if requirements are not met or there are significant errors
+
+2. After your assessment:
+   - If fully complete: Simply congratulate the student briefly.
+   - If partially complete: Explain what's working and what's still missing.
+   - If not complete: Clearly explain what's missing or incorrect and provide a brief hint.
+
+3. Keep the tone friendly, positive, and educational. Remember this is for GCSE students who are still learning.
+
+Keep your response concise (under 60 words) and focused on helping the student learn.`;
+
+                // --- NEW, SECURE PROXY CALL FOR CHECK SOLUTION ---
+                const PROXY_URL = '/api/tip'; // Re-use the same secure serverless function
+
+                try {
+                    // 1. Make a single request to your new, secure proxy
+                    const response = await fetch(PROXY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Send the prompt and system instructions to the proxy
+                        body: JSON.stringify({ 
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "You are a supportive, encouraging GCSE Computer Science teacher providing constructive feedback on student Python code." }] },
+                        }),
+                    });
+
+                    // 2. Handle the response from your proxy
+                    if (!response.ok) {
+                        // If the proxy or Google API returned an error
+                        const errorData = await response.json();
+                        console.error('Proxy Error Details:', errorData);
+                        throw new Error('Could not get feedback from service.');
+                    }
+
+                    // 3. Process the successful result
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const feedbackText = candidate.content.parts[0].text;
+                        const lowerFeedback = feedbackText.toLowerCase();
+                        const isFullyComplete = lowerFeedback.includes('yes - fully complete') || (lowerFeedback.includes('fully complete') && !lowerFeedback.includes('not'));
+                        const isPartial = lowerFeedback.includes('partially complete') || lowerFeedback.includes('partial');
+
+                        if (isFullyComplete) {
+                            markTaskComplete();
+                            feedbackDiv.innerHTML = `<div class="feedback-text">${feedbackText}</div>`;
+                            
+                            setTimeout(() => {
+                                if (confirm('Task complete! Would you like to move to the next task?')) {
+                                    nextTask();
+                                }
+                            }, 1000);
+                        } else if (isPartial) {
+                            markTaskPartial();
+                            feedbackDiv.innerHTML = `<div class="feedback-text">${feedbackText}</div>`;
+                        } else {
+                            feedbackDiv.innerHTML = `<div class="feedback-text">${feedbackText}</div>`;
+                        }
+                    } else {
+                        feedbackDiv.innerHTML = '<span class="feedback-error">Unable to parse feedback. Please try again.</span>';
+                    }
+
+                } catch (error) {
+                    console.error('Feedback Error:', error);
+                    feedbackDiv.innerHTML = `<span class=\"feedback-error\">Error: Could not connect to the feedback service.</span>`;
+                }
+                // --- END NEW, SECURE PROXY CALL FOR CHECK SOLUTION ---
+
+            } finally {
+                checkBtn.disabled = false;
+            }
+        }
+
+        async function getTip() {
+            const code = document.getElementById('code').value.trim();
+            const feedbackDiv = document.getElementById('feedback');
+            const tipBtns = document.querySelectorAll('.clear-btn');
+            let tipBtn = null;
+            tipBtns.forEach(btn => {
+                if (btn.textContent.includes('💡')) {
+                    tipBtn = btn;
+                }
+            });
+            
+            // Check cooldown period
+            const now = Date.now();
+            const timeSinceLastTip = now - lastTipTime;
+            if (timeSinceLastTip < COOLDOWN_MS) {
+                const secondsRemaining = Math.ceil((COOLDOWN_MS - timeSinceLastTip) / 1000);
+                feedbackDiv.innerHTML = `<span class="feedback-error">Sorry - our programming expert has lots of people to help. You can ask for help once every minute. Please wait ${secondsRemaining} more seconds.</span>`;
+                return;
+            }
+            
+            lastTipTime = now; // Update the last tip time
+            feedbackDiv.innerHTML = '<div class="feedback-loading">💡 Generating tip...</div>';
+            if (tipBtn) tipBtn.disabled = true;
+            
+            try {
+                const currentTask = pythonChallenges[currentCategory][currentTaskIndex];
+                
+                const prompt = `You are a helpful computer science teacher providing a hint to a GCSE student.
+
+Task Requirements:
+${currentTask.question}
+
+Student's Current Code:
+\`\`\`python
+${code || '# No code written yet'}
+\`\`\`
+
+Please analyze the code and identify the FIRST requirement from the task that has NOT been successfully addressed yet. Then provide a brief, helpful tip on how to tackle that specific element.
+
+Your response should:
+1. Identify which requirement needs to be worked on next
+2. Give a brief hint about how to approach it (e.g., "You need to create a variable to store...", "Try using the print() function to...")
+3. NOT provide the actual code solution
+4. Be encouraging and concise (under 40 words)
+5. Use UK spellings
+
+If all requirements appear to be met, suggest they click "Check Solution" to verify their work.`;
+
+                // --- NEW, SECURE PROXY CALL FOR TIP ---
+                const PROXY_URL = '/api/tip'; // Points to your secure serverless function
+
+                try {
+                    // 1. Make a single request to your new, secure proxy
+                    const response = await fetch(PROXY_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Send the prompt and system instructions to the proxy
+                        body: JSON.stringify({ 
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "You are a supportive GCSE Computer Science teacher providing helpful hints without giving away answers." }] },
+                        }),
+                    });
+
+                    // 2. Handle the response from your proxy
+                    if (!response.ok) {
+                        // If the proxy or Google API returned an error
+                        const errorData = await response.json();
+                        console.error('Proxy Error Details:', errorData);
+                        throw new Error('Could not get tip from service.');
+                    }
+
+                    // 3. Process the successful result
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const tipText = candidate.content.parts[0].text;
+                        feedbackDiv.innerHTML = `<div class="feedback-text">💡 ${tipText}</div>`;
+                    } else {
+                        feedbackDiv.innerHTML = '<span class="feedback-error">Unable to generate tip. Please try again.</span>';
+                    }
+
+                } catch (error) {
+                    console.error('Tip Error:', error);
+                    feedbackDiv.innerHTML = `<span class="feedback-error">Error: Could not connect to the tip service.</span>`;
+                }
+                // --- END NEW, SECURE PROXY CALL FOR TIP ---
+
+            } finally {
+                if (tipBtn) tipBtn.disabled = false;
+            }
+        }
+
+        // Load Pyodide on page load
+        initPyodide();
+
+        // Allow Ctrl+Enter to run code
+        document.getElementById('code').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                runCode();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
