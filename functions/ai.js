@@ -3,7 +3,7 @@ export async function onRequestPost({ request, env }) {
   const prompt = body.prompt || "Hello";
 
   const result = await env.AI.run(
-    "@cf/meta/llama-3-8b-instruct",
+    "@cf/meta/llama-3.1-8b-instruct",
     {
       messages: [
         { role: "system", content: "You are a helpful assistant." },
